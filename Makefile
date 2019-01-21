@@ -1,5 +1,6 @@
-.PHONY: setup clean lint create-ca
+.PHONY: setup clean lint create-ca build-image tag-image
 SHELL := /bin/bash
+DOCKER_REGISTRY ?= hub.docker.com
 
 setup: set-hooks gen-secrets-folder
 	@ ([ ! -d "env" ] && python3 -m virtualenv env) || true
@@ -22,6 +23,13 @@ install:
 
 lint:
 	@pycodestyle --first *.py
+
+build-image:
+	@docker build -t mtls-server:$(TAG) .
+
+tag-image: build-image
+	@docker tag mtls-server:$(TAG) $(DOCKER_REGISTRY)/mtls-server:$(TAG)
+	@echo "Tagged image: $(DOCKER_REGISTRY)/mtls-server:$(TAG)"
 
 clean:
 	@rm -r env
