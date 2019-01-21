@@ -18,7 +18,11 @@ class CertProcessorKeyNotFoundError(Exception):
 
 class CertProcessor:
     def __init__(self, config):
-        self.gpg = gnupg.GPG(gnupghome=config.get('mtls', 'gnupg_home'))
+        gnupg_path = config.get('mtls', 'gnupg_home')
+        if  not os.path.isabs(gnupg_path):
+            gnupg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), gnupg_path))
+        print(gnupg_path)
+        self.gpg = gnupg.GPG(gnupghome=gnupg_path)
         self.gpg.encoding = 'utf-8'
         self.config = config
 
@@ -46,15 +50,18 @@ class CertProcessor:
             return None
 
     def generate_cert(self, csr, lifetime):
+        ca_key_path = self.config.get('mtls', 'ca_key')
+        if not os.path.isabs(ca_key_path):
+            ca_key_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ca_key_path))
         try:
-            with open(self.config.get('mtls', 'ca_key'), 'rb') as key_file:
+            with open(ca_key_path, 'rb') as key_file:
                 ca_key = serialization.load_pem_private_key(
                     key_file.read(),
                     password=None,
                     backend=default_backend()
                 )
         except IOError:
-            logging.error('Erroring opening file: {}'.format(self.config.get('mtls', 'ca_key')))
+            logging.error('Erroring opening file: {}'.format(ca_key_path))
             raise CertProcessorKeyNotFoundError()
 
         builder = x509.CertificateBuilder()

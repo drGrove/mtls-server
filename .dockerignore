@@ -1,0 +1,6 @@
+secrets/*
+env/*
+*.pyc
+*.example
+config.ini
+__pycache__

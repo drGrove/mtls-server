@@ -14,7 +14,9 @@ VERSION = 'version 0.1'
 
 app = Flask(__name__)
 config = ConfigParser()
-config.read('config.ini')
+config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'config.ini'))
+print(config_path)
+config.read(config_path)
 
 def error_respone(msg):
     return json.dumps({
