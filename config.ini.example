@@ -1,0 +1,5 @@
+[mtls]
+ca_key=secrets/certs/authority/RootCA.key
+ca_cert=secrets/certs/authority/RootCA.pem
+gnupg_home=secrets/gnupg/
+issuer_name=My Company Name
