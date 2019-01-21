@@ -1,2 +1,4 @@
 env
 *.pyc
+config.ini
+secrets

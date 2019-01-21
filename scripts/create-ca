@@ -1,0 +1,12 @@
+#!/bin/bash
+if [ ! -f "$PWD/secrets/certs/authority/RootCA.key" ]; then
+    echo "Generating Root CA Key..."
+    openssl genrsa \
+        -out "$PWD/secrets/certs/authority/RootCA.key" 4096
+fi
+if [ ! -f "$PWD/secrets/certs/authroity/RootCA.key" ]; then
+    echo "Generating Root CA Cert..."
+    openssl req -x509 \
+        -new -nodes -key "$PWD/secrets/certs/authority/RootCA.key" -sha256 \
+        -days 1024 -out "$PWD/secrets/certs/authority/RootCA.pem"
+fi
