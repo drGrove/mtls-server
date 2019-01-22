@@ -45,14 +45,15 @@ def create_cert():
     csr = cert_processor.get_csr(csr)
     if csr is None:
         return error_respone('Invalid CSR')
+    cert = None
     try:
         cert = cert_processor.generate_cert(csr, lifetime)
+        cert = cert_processor.encrypt(str(cert), user_fingerprint)
+        return json.dumps({
+            'data': str(cert)
+        })
     except CertProcessorKeyNotFoundError:
         return error_response('Internal Error')
-    cert = cert_processor.encrypt(str(cert), user_fingerprint)
-    return json.dumps({
-        'data': str(cert)
-    })
 
 
 if __name__ == '__main__':

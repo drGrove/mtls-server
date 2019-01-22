@@ -1,7 +1,7 @@
 import datetime
-import datetime
 import logging
 import os
+import uuid
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -54,7 +54,7 @@ class CertProcessor:
             logging.error(e)
             return None
 
-    def generate_cert(self, csr, lifetime):
+    def get_ca_key(self):
         ca_key_path = self.config.get('mtls', 'ca_key')
         if not os.path.isabs(ca_key_path):
             ca_key_path = os.path.abspath(
@@ -70,20 +70,101 @@ class CertProcessor:
                     password=None,
                     backend=default_backend()
                 )
+                return ca_key
         except IOError:
             logging.error('Erroring opening file: {}'.format(ca_key_path))
             raise CertProcessorKeyNotFoundError()
 
-        builder = x509.CertificateBuilder()
-        builder = builder.subject_name(csr.subject)
-        builder = builder.issuer_name(x509.Name([
-            x509.NameAttribute(
-                x509.OID_COMMON_NAME,
-                self.config.get('mtls', 'issuer_name')
+    def get_ca_crt(self):
+        ca_crt_path = self.config.get('mtls', 'ca_cert')
+        if not os.path.isabs(ca_crt_path):
+            ca_cert_path = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    ca_crt_path
+                )
             )
-        ]))
-        now = datetime.datetime.now()
-        builder = builder.not_valid_before(now)
+        try:
+            with open(ca_crt_path, 'rb') as crt_file:
+                ca_crt = x509.load_pem_x509_certificate(
+                    crt_file.read(),
+                    default_backend()
+                )
+                return ca_crt
+        except IOError:
+            logging.error('Erroring opening file: {}'.format(ca_key_path))
+            raise CertProcessorKeyNotFoundError()
+
+    def generate_cert(self, csr, lifetime):
+        ca_pkey = self.get_ca_key()
+        ca_crt = self.get_ca_crt()
+        now = datetime.datetime.utcnow()
         lifetime_delta = now + datetime.timedelta(hours=int(lifetime))
-        builder = builder.not_valid_after(lifetime_delta)
-        return
+        crt = x509.CertificateBuilder().subject_name(
+            csr.subject
+        ).issuer_name(
+            ca_crt.subject
+        ).public_key(
+            csr.public_key()
+        ).serial_number(
+            uuid.uuid4().int
+        ).not_valid_before(
+           now
+        ).not_valid_after(
+            lifetime_delta
+        ).add_extension(
+            extension=x509.KeyUsage(
+                digital_signature=True,
+                key_encipherment=True,
+                content_commitment=True,
+                data_encipherment=False,
+                key_agreement=False,
+                encipher_only=False,
+                decipher_only=False,
+                key_cert_sign=False,
+                crl_sign=False
+            ),
+            critical=True
+        ).add_extension(
+            extension=x509.BasicConstraints(ca=False, path_length=None),
+            critical=True
+        ).add_extension(
+            extension=x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                ca_pkey.public_key()
+            ),
+            critical=False
+        ).sign(
+            private_key=ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend()
+        )
+        # builder = x509.CertificateBuilder()
+        # builder = builder.subject_name(csr.subject)
+        # builder = builder.issuer_name(ca_crt.subject)
+        # now = datetime.datetime.utcnow()
+        # builder = builder.not_valid_before(now)
+        # lifetime_delta = now + datetime.timedelta(hours=int(lifetime))
+        # builder = builder.not_valid_after(lifetime_delta)
+        # builder = builder.serial_number(uuid.uuid4().int)
+        # builder = builder.public_key(ca_key.public_key())
+        # builder = builder.add_extension(
+        #     csr.extensions.get_extension_for_oid(
+        #         x509.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+        #     ).value,
+        #     critical=False
+        # )
+        # builder = builder.add_extension(
+        #     x509.SubjectKeyIdentifier.from_public_key(csr.public_key()),
+        #     critical=False
+        # )
+        # builder = builder.add_extension(
+        #     x509.AuthorityKeyIdentifier.from_issuer_public_key(
+        #         ca_key.public_key()
+        #     ),
+        #     critical=False
+        # )
+        # certificate = builder.sign(
+        #     private_key=ca_key, algorithm=hashes.SHA256(),
+        #     backend=default_backend()
+        # )
+        return crt.public_bytes(serialization.Encoding.DER)
