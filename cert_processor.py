@@ -133,12 +133,12 @@ class CertProcessor:
                 key_agreement=False,
                 encipher_only=False,
                 decipher_only=False,
-                key_cert_sign=False,
+                key_cert_sign=True,
                 crl_sign=False
             ),
             critical=True
         ).add_extension(
-            extension=x509.BasicConstraints(ca=False, path_length=None),
+            extension=x509.BasicConstraints(ca=True, path_length=0),
             critical=True
         ).add_extension(
             extension=x509.AuthorityKeyIdentifier.from_issuer_public_key(

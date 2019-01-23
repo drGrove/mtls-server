@@ -4,7 +4,7 @@ DOCKER_REGISTRY ?= ""
 TAG ?= latest
 
 setup: set-hooks gen-secrets-folder
-	@ ([ ! -d "env" ] && python3 -m virtualenv env) || true
+	@ ([ ! -d "env" ] && virtualenv --python python3 env) || true
 
 set-hooks:
 	@echo "Setting commit hooks"
@@ -33,7 +33,7 @@ tag-image: build-image
 	@echo "Tagged image: $(DOCKER_REGISTRY)mtls-server:$(TAG)"
 
 run:
-	@python3.7 server.py
+	@python3 server.py
 
 run-prod:
 	@docker run \

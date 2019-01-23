@@ -1,5 +1,6 @@
 import os
 import sys
+import uuid
 from configparser import ConfigParser
 
 from cryptography.hazmat.primitives import serialization
@@ -45,8 +46,12 @@ def create_cert():
         return error_response('Could not load CSR')
     try:
         csr_public_bytes = csr.public_bytes(serialization.Encoding.PEM)
+        path = '/tmp/{}.asc'.format(uuid.uuid4())
+        with open(path, 'wb') as f:
+            f.write(bytes(body['signature'], 'utf-8'))
         cert_processor.verify(csr_public_bytes,
-                              body['signature'])
+                              path)
+        os.remove(path)
     except CertProcessorInvalidSignatureError:
         return error_response('Invalid signature', 401)
     if csr is None:
@@ -55,7 +60,7 @@ def create_cert():
     try:
         cert = cert_processor.generate_cert(csr, lifetime)
         return json.dumps({
-            'data': str(cert)
+            'data': cert.decode('utf-8')
         })
     except CertProcessorKeyNotFoundError:
         return error_response('Internal Error')
