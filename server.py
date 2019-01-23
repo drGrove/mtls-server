@@ -2,12 +2,14 @@ import os
 import sys
 from configparser import ConfigParser
 
+from cryptography.hazmat.primitives import serialization
 from flask import Flask
 from flask import request
 import json
 
 from cert_processor import CertProcessor
 from cert_processor import CertProcessorKeyNotFoundError
+from cert_processor import CertProcessorInvalidSignatureError
 
 __author__ = 'Danny Grove <danny@drgrovell.com>'
 VERSION = 'version 0.1'
@@ -23,11 +25,11 @@ config_path = os.path.abspath(
 config.read(config_path)
 
 
-def error_respone(msg):
+def error_response(msg, status_code=501):
     return json.dumps({
         'error': True,
         'msg': msg
-    }), 501
+    }), status_code
 
 
 @app.route('/', methods=['POST'])
@@ -35,20 +37,23 @@ def create_cert():
     body = request.get_json()
     lifetime = int(body['lifetime'])
     if lifetime < 1:
-        error_respone('lifetime must be greater than 1 hour')
+        error_response('lifetime must be greater than 1 hour')
     cert_processor = CertProcessor(config)
-    csr, user_fingerprint = cert_processor.decrypt(body['csr'])
+    csr_str = body['csr']
+    csr = cert_processor.get_csr(csr_str)
     if csr is None:
-        return error_respone('Could not decrypt csr')
-    if user_fingerprint is None:
-        return error_respone('Encrypted CSR must be signed')
-    csr = cert_processor.get_csr(csr)
+        return error_response('Could not load CSR')
+    try:
+        csr_public_bytes = csr.public_bytes(serialization.Encoding.PEM)
+        cert_processor.verify(csr_public_bytes,
+                              body['signature'])
+    except CertProcessorInvalidSignatureError:
+        return error_response('Invalid signature', 401)
     if csr is None:
-        return error_respone('Invalid CSR')
+        return error_response('Invalid CSR')
     cert = None
     try:
         cert = cert_processor.generate_cert(csr, lifetime)
-        cert = cert_processor.encrypt(str(cert), user_fingerprint)
         return json.dumps({
             'data': str(cert)
         })

@@ -17,6 +17,10 @@ class CertProcessorKeyNotFoundError(Exception):
     pass
 
 
+class CertProcessorInvalidSignatureError(Exception):
+    pass
+
+
 class CertProcessor:
     def __init__(self, config):
         gnupg_path = config.get('mtls', 'gnupg_home')
@@ -46,9 +50,17 @@ class CertProcessor:
             data = None
         return data, fingerprint
 
+    def verify(self, csr, signature):
+        verified = self.gpg.verify_data(signature,
+                                        csr)
+        print(verified.trust_level)
+        if not verified.valid:
+            logging.error(str(verified.trust_level))
+            raise CertProcessorInvalidSignatureError
+
     def get_csr(self, csr):
         try:
-            return x509.load_pem_x509_csr(bytes(str(csr), 'utf-8'),
+            return x509.load_pem_x509_csr(bytes(csr, 'utf-8'),
                                           default_backend())
         except Exception as e:
             logging.error(e)
@@ -167,4 +179,4 @@ class CertProcessor:
         #     private_key=ca_key, algorithm=hashes.SHA256(),
         #     backend=default_backend()
         # )
-        return crt.public_bytes(serialization.Encoding.DER)
+        return crt.public_bytes(serialization.Encoding.PEM)
