@@ -1,0 +1,14 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+cryptography = "==2.4.2"
+python-gnupg = "==0.4.3"
+pycodestyle = "==2.4.0"
+Flask = "==1.0.2"
+uWSGI = "==2.0.17.1"
+
+[requires]
+python_version = "3.7"

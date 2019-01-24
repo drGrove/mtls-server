@@ -1,5 +1,16 @@
+-i https://pypi.org/simple
+asn1crypto==0.24.0
+cffi==1.11.5
+click==7.0
 cryptography==2.4.2
-python-gnupg==0.4.3
-Flask==1.0.2
+flask==1.0.2
+idna==2.8
+itsdangerous==1.1.0
+jinja2==2.10
+markupsafe==1.1.0
 pycodestyle==2.4.0
-uWSGI==2.0.17.1
+pycparser==2.19
+python-gnupg==0.4.3
+six==1.12.0
+uwsgi==2.0.17.1
+werkzeug==0.14.1

@@ -3,8 +3,12 @@ SHELL := /bin/bash
 DOCKER_REGISTRY ?= ""
 TAG ?= latest
 
+PIP_ENV := $(shell pipenv --venv)
+
 setup: set-hooks gen-secrets-folder
-	@ ([ ! -d "env" ] && virtualenv --python python3 env) || true
+	pipenv update
+	pipenv install --dev
+	pipenv lock -r > requirements.txt
 
 set-hooks:
 	@echo "Setting commit hooks"
@@ -14,15 +18,16 @@ gen-secrets-folder:
 	@./scripts/gen-secrets-folder
 
 create-ca: gen-secrets-folder
-	./scripts/create-ca
+	@./scripts/create-ca
 
 create-pgp-key: gen-secrets-folder
-	./scripts/gen-gnupg-key
+	@./scripts/gen-gnupg-key
 
 install:
 	@pip install -r requirements.txt
 
 lint:
+	. $(PIP_ENV)/bin/activate
 	@pycodestyle --first *.py
 
 build-image:
@@ -33,6 +38,7 @@ tag-image: build-image
 	@echo "Tagged image: $(DOCKER_REGISTRY)mtls-server:$(TAG)"
 
 run:
+	. $(PIP_ENV)/bin/activate
 	@python3 server.py
 
 run-prod:
