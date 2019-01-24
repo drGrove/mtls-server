@@ -37,11 +37,16 @@ run:
 
 run-prod:
 	@docker run \
+		--name mtls-server \
+		--rm \
 		-p 4000:4000 \
-		-v $PWD/secrets/gnupg:/srv/secrets/gnupg \
-		-v $PWD/secrets/certs/authority:/srv/secrets/certs/authority \
-		-v $PWD/config.ini:/srv/config.ini \
+		-v $(PWD)/secrets/gnupg:/srv/secrets/gnupg \
+		-v $(PWD)/secrets/certs/authority:/srv/secrets/certs/authority \
+		-v $(PWD)/config.ini:/srv/config.ini \
 		$(DOCKER_REGISTRY)mtls-server:$(TAG)
+
+stop-prod:
+	@docker stop mtls-server
 
 clean:
 	@rm -r env
