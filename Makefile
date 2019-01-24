@@ -38,8 +38,8 @@ tag-image: build-image
 	@echo "Tagged image: $(DOCKER_REGISTRY)mtls-server:$(TAG)"
 
 run:
-	. $(PIP_ENV)/bin/activate
-	@python3 server.py
+	@. $(PIP_ENV)/bin/activate
+	@$(PIP_ENV)/bin/python3 server.py
 
 run-prod:
 	@docker run \
