@@ -27,8 +27,8 @@ install:
 	@pip install -r requirements.txt
 
 lint:
-	. $(PIP_ENV)/bin/activate
-	@pycodestyle --first *.py
+	@. $(PIP_ENV)/bin/activate
+	@$(PIP_ENV)/bin/pycodestyle --first *.py
 
 build-image:
 	@docker build -t mtls-server:$(TAG) .
