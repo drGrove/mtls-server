@@ -1,10 +1,10 @@
-FROM python:3.7.2-slim-stretch
+FROM nginx:1.15.8
 MAINTAINER Danny Grove <danny@drgrovellc.com>
 WORKDIR /srv/
 ADD requirements.txt /srv/
 RUN apt update && \
-  apt install -y gnupg openssl python3-dev build-essential nginx make && \
-  pip install -r requirements.txt --src /usr/local/src
+  apt install -y gnupg openssl python3-dev python3-pip build-essential make && \
+  pip3 install -r requirements.txt --src /usr/local/src
 ADD *.py /srv/
 ADD nginx/nginx.conf /etc/nginx/
 ADD nginx/includes /etc/nginx/includes/

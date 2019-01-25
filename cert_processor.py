@@ -53,7 +53,6 @@ class CertProcessor:
     def verify(self, csr, signature):
         verified = self.gpg.verify_data(signature,
                                         csr)
-        print(verified.trust_level)
         if not verified.valid:
             logging.error(str(verified.trust_level))
             raise CertProcessorInvalidSignatureError
@@ -112,6 +111,9 @@ class CertProcessor:
         ca_crt = self.get_ca_crt()
         now = datetime.datetime.utcnow()
         lifetime_delta = now + datetime.timedelta(hours=int(lifetime))
+        alts = []
+        for alt in self.config.get('mtls', 'alternate_name').split(','):
+            alts.append(x509.DNSName(u'{}'.format(alt)))
         crt = x509.CertificateBuilder().subject_name(
             csr.subject
         ).issuer_name(
@@ -145,7 +147,14 @@ class CertProcessor:
                 ca_pkey.public_key()
             ),
             critical=False
-        ).sign(
+        )
+
+        if len(alts) > 0:
+            crt = crt.add_extension(
+                x509.SubjectAlternativeName(alts), critical=False
+            )
+
+        crt = crt.sign(
             private_key=ca_pkey,
             algorithm=hashes.SHA256(),
             backend=default_backend()

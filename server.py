@@ -60,7 +60,10 @@ def create_cert():
     try:
         cert = cert_processor.generate_cert(csr, lifetime)
         return json.dumps({
-            'data': cert.decode('utf-8')
+            'cert': cert.decode('utf-8'),
+            'ca_cert': cert_processor.get_ca_crt().public_bytes(
+                serialization.Encoding.PEM
+            ).decode('utf-8')
         })
     except CertProcessorKeyNotFoundError:
         return error_response('Internal Error')

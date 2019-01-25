@@ -24,7 +24,8 @@ create-pgp-key: gen-secrets-folder
 	@./scripts/gen-gnupg-key
 
 install:
-	@pip install -r requirements.txt
+	@. $(PIP_ENV)/bin/activate
+	@$(PIP_ENV)/bin/pip install -r requirements.txt
 
 lint:
 	@. $(PIP_ENV)/bin/activate
@@ -55,4 +56,4 @@ stop-prod:
 	@docker stop mtls-server
 
 clean:
-	@rm -r env
+	@rm -r $(PIP_ENV)
