@@ -46,9 +46,10 @@ run-prod:
 	@docker run \
 		--name mtls-server \
 		--rm \
-		-p 4000:4000 \
+		-p 443:443 \
 		-v $(PWD)/secrets/gnupg:/srv/secrets/gnupg \
 		-v $(PWD)/secrets/certs/authority:/srv/secrets/certs/authority \
+		-v $(PWD)/nginx/html:/usr/share/nginx \
 		-v $(PWD)/config.ini:/srv/config.ini \
 		$(DOCKER_REGISTRY)mtls-server:$(TAG)
 
