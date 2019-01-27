@@ -24,6 +24,7 @@ config_path = os.path.abspath(
     )
 )
 config.read(config_path)
+cert_processor = CertProcessor(config)
 
 
 def error_response(msg, status_code=501):
@@ -39,19 +40,18 @@ def create_cert():
     lifetime = int(body['lifetime'])
     if lifetime < 1:
         error_response('lifetime must be greater than 1 hour')
-    cert_processor = CertProcessor(config)
     csr_str = body['csr']
     csr = cert_processor.get_csr(csr_str)
     if csr is None:
         return error_response('Could not load CSR')
     try:
         csr_public_bytes = csr.public_bytes(serialization.Encoding.PEM)
-        path = '/tmp/{}.asc'.format(uuid.uuid4())
-        with open(path, 'wb') as f:
+        sig_path = '/tmp/{}.asc'.format(uuid.uuid4())
+        with open(sig_path, 'wb') as f:
             f.write(bytes(body['signature'], 'utf-8'))
         cert_processor.verify(csr_public_bytes,
-                              path)
-        os.remove(path)
+                              sig_path)
+        os.remove(sig_path)
     except CertProcessorInvalidSignatureError:
         return error_response('Invalid signature', 401)
     if csr is None:
@@ -60,10 +60,7 @@ def create_cert():
     try:
         cert = cert_processor.generate_cert(csr, lifetime)
         return json.dumps({
-            'cert': cert.decode('utf-8'),
-            'ca_cert': cert_processor.get_ca_crt().public_bytes(
-                serialization.Encoding.PEM
-            ).decode('utf-8')
+            'cert': cert.decode('utf-8')
         })
     except CertProcessorKeyNotFoundError:
         return error_response('Internal Error')
