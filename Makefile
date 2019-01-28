@@ -46,14 +46,25 @@ run-prod:
 	@docker run \
 		--name mtls-server \
 		--rm \
-		-p 443:443 \
+		-d \
 		-v $(PWD)/secrets/gnupg:/srv/secrets/gnupg \
 		-v $(PWD)/secrets/certs/authority:/srv/secrets/certs/authority \
-		-v $(PWD)/nginx/html:/usr/share/nginx \
 		-v $(PWD)/config.ini:/srv/config.ini \
 		$(DOCKER_REGISTRY)mtls-server:$(TAG)
+	@docker run \
+		--name mtls-nginx \
+		--rm \
+		-p 443:443 \
+		--link mtls-server:mtls \
+		-v $(PWD)/nginx/nginx.conf:/etc/nginx/nginx.conf \
+		-v $(PWD)/nginx/includes:/etc/nginx/includes \
+		-v $(PWD)/secrets/certs/authority:/etc/nginx/ssl/client_certs/ \
+		-v $(PWD)/nginx/html:/usr/share/nginx/ \
+		nginx
+
 
 stop-prod:
+	@docker stop mtls-nginx
 	@docker stop mtls-server
 
 clean:
