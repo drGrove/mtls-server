@@ -1,3 +1,4 @@
 FROM nginx:1.15.8
 ADD nginx/nginx.conf /etc/nginx/
 ADD nginx/includes /etc/nginx/includes/
+ADD nginx/html /usr/share/nginx/
