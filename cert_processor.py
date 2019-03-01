@@ -12,6 +12,8 @@ from cryptography.x509.oid import NameOID
 
 import gnupg
 
+from storage import StorageEngine
+
 
 class CertProcessorKeyNotFoundError(Exception):
     pass
@@ -32,6 +34,8 @@ class CertProcessor:
             )
         self.gpg = gnupg.GPG(gnupghome=gnupg_path)
         self.gpg.encoding = 'utf-8'
+        self.storage = StorageEngine(config)
+        self.storage.init_db()
         self.config = config
         self.openssl_format = serialization.PrivateFormat.TraditionalOpenSSL
         self.no_encyption = serialization.NoEncryption()
@@ -202,4 +206,7 @@ class CertProcessor:
             algorithm=hashes.SHA256(),
             backend=default_backend()
         )
+
+        self.storage.save_cert(cert)
+
         return cert.public_bytes(serialization.Encoding.PEM)
