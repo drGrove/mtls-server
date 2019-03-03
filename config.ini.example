@@ -1,6 +1,15 @@
 [mtls]
-ca_key=secrets/certs/authority/RootCA.key
-ca_cert=secrets/certs/authority/RootCA.pem
-gnupg_home=secrets/gnupg/
+; Minimum lifetime in seconds
+min_lifetime=60
+; Maximum lifetime in seconds, if 0 it is disabled
+max_lifetime=0
+
+[ca]
+key=secrets/certs/authority/RootCA.key
+cert=secrets/certs/authority/RootCA.pem
 issuer=My Company Name
-altername_name[]=*.myname.com
+; Multiple alt names can be added comma separated
+alternate_name=*.myname.com
+
+[gnupg]
+home=secrets/gnupg/

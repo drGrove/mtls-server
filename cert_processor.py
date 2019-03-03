@@ -23,7 +23,7 @@ class CertProcessorInvalidSignatureError(Exception):
 
 class CertProcessor:
     def __init__(self, config):
-        gnupg_path = config.get('mtls', 'gnupg_home')
+        gnupg_path = config.get('gnupg', 'home')
         if not os.path.isabs(gnupg_path):
             gnupg_path = os.path.abspath(
                 os.path.join(
@@ -68,7 +68,7 @@ class CertProcessor:
             return None
 
     def get_ca_key(self):
-        ca_key_path = self.config.get('mtls', 'ca_key')
+        ca_key_path = self.config.get('ca', 'key')
         if not os.path.isabs(ca_key_path):
             ca_key_path = os.path.abspath(
                 os.path.join(
@@ -84,7 +84,7 @@ class CertProcessor:
                     backend=default_backend()
                 )
                 return ca_key
-        except ValueError:
+        except (ValueError, FileNotFoundError) as e:
             logging.error('Erroring opening file: {}'.format(ca_key_path))
             logging.error('Generating new key...')
             key = rsa.generate_private_key(
@@ -100,8 +100,8 @@ class CertProcessor:
                 f.write(key_data)
             return key
 
-    def get_ca_cert(self, key):
-        ca_cert_path = self.config.get('mtls', 'ca_cert')
+    def get_ca_cert(self, key=None):
+        ca_cert_path = self.config.get('ca', 'cert')
         if not os.path.isabs(ca_cert_path):
             ca_cert_path = os.path.abspath(
                 os.path.join(
@@ -119,13 +119,16 @@ class CertProcessor:
                 )
                 return ca_cert
 
+        if key is None:
+            raise CertProcessorKeyNotFoundError()
+
         key_id = x509.SubjectKeyIdentifier.from_public_key(
             key.public_key()
         )
         subject = issuer = x509.Name([
             x509.NameAttribute(
                 NameOID.COMMON_NAME,
-                self.config.get('mtls', 'issuer')
+                self.config.get('ca', 'issuer')
             )
         ])
         now = datetime.datetime.utcnow()
@@ -170,9 +173,10 @@ class CertProcessor:
         ca_pkey = self.get_ca_key()
         ca_cert = self.get_ca_cert(ca_pkey)
         now = datetime.datetime.utcnow()
-        lifetime_delta = now + datetime.timedelta(hours=int(lifetime))
+        lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
         alts = []
-        for alt in self.config.get('mtls', 'alternate_name').split(','):
+        print(self.config.get('ca', 'alternate_name'))
+        for alt in self.config.get('ca', 'alternate_name').split(','):
             alts.append(x509.DNSName(u'{}'.format(alt)))
         cert = x509.CertificateBuilder().subject_name(
             csr.subject

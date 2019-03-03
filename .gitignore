@@ -3,3 +3,5 @@ env
 config.ini*
 !config.ini.example
 secrets
+~*
+*.sw[o|p]
