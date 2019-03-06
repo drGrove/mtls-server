@@ -179,7 +179,6 @@ class CertProcessor:
         now = datetime.datetime.utcnow()
         lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
         alts = []
-        print(self.config.get('ca', 'alternate_name'))
         for alt in self.config.get('ca', 'alternate_name').split(','):
             alts.append(x509.DNSName(u'{}'.format(alt)))
         cert = x509.CertificateBuilder().subject_name(
