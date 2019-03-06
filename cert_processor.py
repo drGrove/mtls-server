@@ -104,8 +104,8 @@ class CertProcessor:
                 )
                 return ca_key
         except (ValueError, FileNotFoundError) as e:
-            logger.error('Erroring opening file: {}'.format(ca_key_path))
-            logger.error('Generating new key...')
+            logger.error('Error opening file: {}'.format(ca_key_path))
+            logger.info('Generating new root key...')
             key = rsa.generate_private_key(
                     public_exponent=65537,
                     key_size=4096,
