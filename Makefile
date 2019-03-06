@@ -31,6 +31,9 @@ lint:
 	@. $(PIP_ENV)/bin/activate
 	@$(PIP_ENV)/bin/pycodestyle --first *.py
 
+test:
+	@$(PIP_ENV)/bin/python3 -m unittest
+
 build-image:
 	@docker build -t mtls-server:$(TAG) .
 

@@ -12,6 +12,18 @@ from cryptography.x509.oid import NameOID
 
 import gnupg
 
+from storage import StorageEngine
+
+# Log to the screen
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(logging.Formatter(
+    '%(asctime)s: "%(filename)s" (line: %(lineno)d) - %(levelname)s ' +
+    '%(message)s'
+))
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(stream_handler)
+
 
 class CertProcessorKeyNotFoundError(Exception):
     pass
@@ -32,6 +44,13 @@ class CertProcessor:
             )
         self.gpg = gnupg.GPG(gnupghome=gnupg_path)
         self.gpg.encoding = 'utf-8'
+        self.has_storage = False
+        if config.get('storage', 'engine', fallback=None) is not None:
+            self.has_storage = True
+            self.storage = StorageEngine(config)
+            self.storage.init_db()
+        else:
+            logger.warning("Storage is not configured.")
         self.config = config
         self.openssl_format = serialization.PrivateFormat.TraditionalOpenSSL
         self.no_encyption = serialization.NoEncryption()
@@ -45,10 +64,10 @@ class CertProcessor:
             data = self.gpg.decrypt(data)
             fingerprint = data.fingerprint
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             data = None
         if data.ok is False:
-            logging.error(data.status)
+            logger.error(data.status)
             data = None
         return data, fingerprint
 
@@ -56,7 +75,7 @@ class CertProcessor:
         verified = self.gpg.verify_data(signature,
                                         csr)
         if not verified.valid:
-            logging.error(str(verified))
+            logger.error(str(verified))
             raise CertProcessorInvalidSignatureError
 
     def get_csr(self, csr):
@@ -64,7 +83,7 @@ class CertProcessor:
             return x509.load_pem_x509_csr(bytes(csr, 'utf-8'),
                                           default_backend())
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None
 
     def get_ca_key(self):
@@ -85,8 +104,8 @@ class CertProcessor:
                 )
                 return ca_key
         except (ValueError, FileNotFoundError) as e:
-            logging.error('Erroring opening file: {}'.format(ca_key_path))
-            logging.error('Generating new key...')
+            logger.error('Erroring opening file: {}'.format(ca_key_path))
+            logger.error('Generating new key...')
             key = rsa.generate_private_key(
                     public_exponent=65537,
                     key_size=4096,
@@ -175,7 +194,6 @@ class CertProcessor:
         now = datetime.datetime.utcnow()
         lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
         alts = []
-        print(self.config.get('ca', 'alternate_name'))
         for alt in self.config.get('ca', 'alternate_name').split(','):
             alts.append(x509.DNSName(u'{}'.format(alt)))
         cert = x509.CertificateBuilder().subject_name(
@@ -202,4 +220,7 @@ class CertProcessor:
             algorithm=hashes.SHA256(),
             backend=default_backend()
         )
+        if self.has_storage:
+            self.storage.save_cert(cert)
+
         return cert.public_bytes(serialization.Encoding.PEM)
