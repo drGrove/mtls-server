@@ -44,32 +44,13 @@ class CertProcessor:
             )
         self.gpg = gnupg.GPG(gnupghome=gnupg_path)
         self.gpg.encoding = 'utf-8'
-        self.has_storage = False
-        if config.get('storage', 'engine', fallback=None) is not None:
-            self.has_storage = True
-            self.storage = StorageEngine(config)
-            self.storage.init_db()
-        else:
-            logger.warning("Storage is not configured.")
+        if config.get('storage', 'engine', fallback=None) is None:
+            storage.StorageEngineMissing()
+        self.storage = StorageEngine(config)
+        self.storage.init_db()
         self.config = config
         self.openssl_format = serialization.PrivateFormat.TraditionalOpenSSL
         self.no_encyption = serialization.NoEncryption()
-
-    def encrypt(self, data, recipients, sign=False):
-        return self.gpg.encrypt(data, recipients, sign=sign)
-
-    def decrypt(self, data):
-        fingerprint = None
-        try:
-            data = self.gpg.decrypt(data)
-            fingerprint = data.fingerprint
-        except Exception as e:
-            logger.error(e)
-            data = None
-        if data.ok is False:
-            logger.error(data.status)
-            data = None
-        return data, fingerprint
 
     def verify(self, csr, signature):
         verified = self.gpg.verify_data(signature,
@@ -209,18 +190,51 @@ class CertProcessor:
         ).not_valid_after(
             lifetime_delta
         )
-
         if len(alts) > 0:
             cert = cert.add_extension(
                 x509.SubjectAlternativeName(alts), critical=False
             )
-
         cert = cert.sign(
             private_key=ca_pkey,
             algorithm=hashes.SHA256(),
             backend=default_backend()
         )
-        if self.has_storage:
-            self.storage.save_cert(cert)
-
+        self.storage.save_cert(cert)
         return cert.public_bytes(serialization.Encoding.PEM)
+
+    def get_crl(self):
+        ca_pkey = self.get_ca_key()
+        ca_cert = self.get_ca_cert(ca_pkey)
+        crl = x509.CertificateRevocationListBuilder().issuer_name(
+            ca_cert.subject
+        ).last_update(
+            datetime.datetime.utcnow()
+        ).next_update(
+            datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+        )
+        for cert in self.storage.revoked_certs():
+            # Convert the string cert into a cryptography cert object
+            cert = x509.load_pem_x509_certificate(
+                bytes(str(cert), 'UTF-8'),
+                backend=default_backend()
+            )
+            # Add the certificate to the CRL
+            crl = crl.add_revoked_certificate(
+                x509.RevokedCertificateBuilder().serial_number(
+                    cert.serial_number
+                ).revocation_date(
+                    datetime.datetime.utcnow()
+                ).build(
+                    default_backend()
+                )
+            )
+        # Sign the CRL
+        crl = crl.sign(
+            private_key=ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend()
+        )
+        return crl
+
+    def revoke_cert(self, serial_number):
+        self.storage.revoke_cert(serial_number)

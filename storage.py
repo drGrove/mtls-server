@@ -1,3 +1,4 @@
+import datetime
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -8,6 +9,12 @@ class StorageEngineCertificateConflict(Exception):
     Raise when a StorageEngine implementation is asked to persist a certificate
     with a serial number that already exists or CommonName that is already in
     use by another non-expired/revoked certificate
+    """
+
+
+class StorageEngineMissing(Exception):
+    """
+    Raise when a StorageEngine type is missing.
     """
 
 
@@ -63,7 +70,7 @@ class SQLiteStorageEngine(SqlStorageEngine):
                 str(cert.serial_number),
                 common_name,
                 cert.not_valid_after,
-                cert.public_bytes(Encoding.PEM),
+                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
                 False
             ])
         self.conn.commit()
@@ -73,6 +80,19 @@ class SQLiteStorageEngine(SqlStorageEngine):
         cur.execute('UPDATE certs SET revoked=1 WHERE serial_number=?',
                     [str(serial_number)])
         self.conn.commit()
+
+    def revoked_certs(self):
+        cur = self.conn.cursor()
+        now = str(datetime.datetime.utcnow())
+        cur.execute(
+            "SELECT cert FROM certs WHERE revoked=1 AND not_valid_after>?",
+            [now]
+        )
+        rows = cur.fetchall()
+        certs = []
+        for row in rows:
+            certs.append(row[0])
+        return certs
 
     def __conflicting_cert_exists(self, cert):
         common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
@@ -141,7 +161,7 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 str(cert.serial_number),
                 common_name,
                 cert.not_valid_after,
-                cert.public_bytes(Encoding.PEM),
+                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
                 False
             ))
         self.conn.commit()
@@ -153,6 +173,21 @@ class PostgresqlStorageEngine(SqlStorageEngine):
             (str(serial_number),)
         )
         self.conn.commit()
+
+    def revoked_certs(self):
+        cur = self.conn.cursor()
+        now = datetime.datetime.utcnow()
+        not_valid_after = now.strftime("%Y-%m-%d %H:%M:%S")
+        cur.execute(
+            "SELECT cert FROM certs WHERE revoked = true AND " +
+            "not_valid_after > %s",
+            (str(not_valid_after),)
+        )
+        rows = cur.fetchall()
+        certs = []
+        for row in rows:
+            certs.append(row[0])
+        return certs
 
     def __conflicting_cert_exists(self, cert):
         common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
@@ -186,7 +221,9 @@ class StorageEngine:
     """
 
     def __new__(cls, config):
-        engine = config.get('storage', 'engine')
+        engine = config.get('storage', 'engine', fallback=None)
+        if engine is None:
+            raise StorageEngineMissing()
         if engine == 'sqlite3':
             return SQLiteStorageEngine(config)
         elif engine == 'postgres':

@@ -1,12 +1,29 @@
-#!/bin/bash
-if [ ! -f "$PWD/secrets/certs/authority/RootCA.key" ]; then
-    echo "Generating Root CA Key..."
-    openssl genrsa \
-        -out "$PWD/secrets/certs/authority/RootCA.key" 4096
-fi
-if [ ! -f "$PWD/secrets/certs/authroity/RootCA.key" ]; then
-    echo "Generating Root CA Cert..."
-    openssl req -x509 \
-        -new -nodes -key "$PWD/secrets/certs/authority/RootCA.key" -sha256 \
-        -days 1024 -out "$PWD/secrets/certs/authority/RootCA.pem"
-fi
+#! /usr/bin/env python3
+import os
+import sys
+
+# Check if within pipenv, otherwise bail
+if os.getenv('PIPENV_ACTIVE') != '1' and os.getenv('CI') is None:
+    print('Script must be run within pipenv. Use `make create-ca`')
+    sys.exit(1)
+
+sys.path.extend([
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+])
+
+from cert_processor import CertProcessor
+from configparser import ConfigParser
+
+config = ConfigParser()
+config_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        'config.ini'
+    )
+)
+config.read(config_path)
+cert_processor = CertProcessor(config)
+
+key = cert_processor.get_ca_key()
+cert_processor.get_ca_cert(key)

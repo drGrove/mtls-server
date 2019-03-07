@@ -13,7 +13,7 @@ from cert_processor import CertProcessor
 from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorInvalidSignatureError
 
-__author__ = 'Danny Grove <danny@drgrovell.com>'
+__author__ = 'Danny Grove <danny@drgrovellc.com>'
 VERSION = 'version 0.1'
 
 app = Flask(__name__)
@@ -95,6 +95,22 @@ def create_cert():
 
 @app.route('/ca', methods=['GET'])
 def get_ca_cert():
+    cert = cert_processor.get_ca_cert()
+    return json.dumps({
+        'issuer': config.get('ca', 'issuer'),
+        'cert': cert.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
+    })
+
+
+@app.route('/crl', methods=['GET'])
+def get_crl():
+    crl = cert_processor.get_crl()
+    return crl.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
+
+
+if __name__ == '__main__':
+    # Prior to initializing the server ensure that a CA certificate exits
+    # otherwise create one so it can be used across endpoints
     try:
         cert = cert_processor.get_ca_cert()
     except CertProcessorKeyNotFoundError:
@@ -102,11 +118,4 @@ def get_ca_cert():
         # first call ever made to the server
         key = cert_processor.get_ca_key()
         cert = cert_processor.get_ca_cert(key)
-    return json.dumps({
-        'issuer': config.get('ca', 'issuer'),
-        'cert': cert.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
-    })
-
-
-if __name__ == '__main__':
     app.run(port=config.get('mtls', 'port', fallback=4000))

@@ -246,17 +246,12 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         """
         Verify that revocations are actually persisted to the DB
         """
-
         query = "SELECT revoked FROM certs WHERE serial_number = %s"
         cur = self.engine.conn.cursor()
-
         cert = generate_fake_cert('user@host', serial_number=123)
         self.engine.save_cert(cert)
-
         cur.execute(query, (str(cert.serial_number),))
         self.assertEqual(cur.fetchone()[0], False)
-
         self.engine.revoke_cert(cert.serial_number)
-
         cur.execute(query, (str(cert.serial_number),))
         self.assertEqual(cur.fetchone()[0], True)
