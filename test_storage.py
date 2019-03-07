@@ -153,3 +153,110 @@ class TestSQLiteStorageEngine(unittest.TestCase):
 
         cur.execute(query, [str(cert.serial_number)])
         self.assertEqual(cur.fetchone()[0], 1)
+
+
+class TestPostgresqlStorageEngine(unittest.TestCase):
+    def setUp(self):
+        config = configparser.ConfigParser()
+        config.read_string(
+            """
+            [storage]
+            engine=postgres
+
+            [storage.postgres]
+            database = mtls
+            user = postgres
+            password = postgres
+            host = localhost
+            """)
+
+        self.engine = storage.PostgresqlStorageEngine(config)
+        cur = self.engine.conn.cursor()
+        cur.execute('DROP TABLE IF EXISTS certs')
+        self.engine.conn.commit()
+        self.engine.init_db()
+
+    def tearDown(self):
+        self.engine.close()
+
+    def test_save_cert_persists_data(self):
+        """
+        Verify that certificates are actually persisted to the DB
+        """
+
+        common_name = 'user@host'
+        query = 'SELECT serial_number FROM certs WHERE common_name=%s'
+        cur = self.engine.conn.cursor()
+
+        cur.execute(query, [common_name])
+        self.assertIsNone(cur.fetchone())
+
+        cert = generate_fake_cert(common_name)
+        self.engine.save_cert(cert)
+
+        cur.execute(query, [common_name])
+        self.assertIsNotNone(cur.fetchone())
+
+    def test_save_cert_success_conditions(self):
+        """
+        Verify that a certificate can be saved if the serial number is unique
+        and if the CommonName does not conflict with any existing non-expired
+        and non-revoked certificates
+        """
+
+        # Saving a certificate for the first time
+        cert = generate_fake_cert('user@host1')
+        self.engine.save_cert(cert)
+
+        # Superceeding an expired certificate
+        cert = generate_fake_cert('user@host2', expired=True)
+        self.engine.save_cert(cert)
+        cert = generate_fake_cert('user@host2')
+        self.engine.save_cert(cert)
+
+        # Superceeding a revoked certificate
+        cert = generate_fake_cert('user@host3')
+        self.engine.save_cert(cert)
+        self.engine.revoke_cert(cert.serial_number)
+        cert = generate_fake_cert('user@host3')
+        self.engine.save_cert(cert)
+
+    def test_save_cert_failure_conditions(self):
+        """
+        Verify that an exception is raised when a caller asks to save a
+        certificate with a non-unique serial number, or if the CommonName
+        conflicts with any existing non-expired and non-revoked certificates
+        """
+
+        # Conflicting serial number with any previous certificate
+        cert = generate_fake_cert('user@host1', serial_number=123)
+        self.engine.save_cert(cert)
+        cert = generate_fake_cert('user@host1', serial_number=123)
+        with self.assertRaises(storage.StorageEngineCertificateConflict):
+            self.engine.save_cert(cert)
+
+        # Conflicting CommonName with still-valid certificate
+        cert = generate_fake_cert('user@host2')
+        self.engine.save_cert(cert)
+        cert = generate_fake_cert('user@host2')
+        with self.assertRaises(storage.StorageEngineCertificateConflict):
+            self.engine.save_cert(cert)
+
+    def test_revoke_cert_persists_data(self):
+        """
+        Verify that revocations are actually persisted to the DB
+        """
+
+        query = "SELECT revoked FROM certs WHERE serial_number = %s"
+        cur = self.engine.conn.cursor()
+
+        cert = generate_fake_cert('user@host', serial_number=123)
+        self.engine.save_cert(cert)
+
+        cur.execute(query, (str(cert.serial_number),))
+        self.assertEqual(cur.fetchone()[0], False)
+
+        self.engine.revoke_cert(cert.serial_number)
+
+        cur.execute(query, (str(cert.serial_number),))
+        self.assertEqual(cur.fetchone()[0], True)
