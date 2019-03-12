@@ -1,7 +1,10 @@
 import datetime
+
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.serialization import Encoding
+
+from logger import logger
 
 
 class StorageEngineCertificateConflict(Exception):
@@ -44,12 +47,13 @@ class SQLiteStorageEngine(SqlStorageEngine):
                 common_name text,
                 not_valid_after datetime,
                 cert blob,
-                revoked boolean
+                revoked boolean,
+                fingerprint text
             )
             """)
         self.conn.commit()
 
-    def save_cert(self, cert):
+    def save_cert(self, cert, fingerprint):
         if self.__conflicting_cert_exists(cert):
             raise StorageEngineCertificateConflict
 
@@ -63,25 +67,63 @@ class SQLiteStorageEngine(SqlStorageEngine):
                 common_name,
                 not_valid_after,
                 cert,
-                revoked
+                revoked,
+                fingerprint
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             """, [
                 str(cert.serial_number),
                 common_name,
                 cert.not_valid_after,
                 cert.public_bytes(Encoding.PEM).decode('UTF-8'),
-                False
+                False,
+                fingerprint
             ])
         self.conn.commit()
 
     def revoke_cert(self, serial_number):
         cur = self.conn.cursor()
+        logger.info('Revoking certificate {serial_number}'.format(
+            serial_number=serial_number
+        ))
         cur.execute('UPDATE certs SET revoked=1 WHERE serial_number=?',
                     [str(serial_number)])
         self.conn.commit()
 
-    def revoked_certs(self):
+    def get_cert(self, serial_number=None, common_name=None, fingerprint=None):
+        cur = self.conn.cursor()
+        query = None
+        value = None
+        if serial_number is not None:
+            query = 'serial_number'
+            value = str(serial_number)
+        elif fingerprint is not None:
+            query = 'fingerprint'
+            value = str(fingerprint)
+        elif common_name is not None:
+            query = 'common_name'
+            value = str(common_name)
+        else:
+            return None
+
+        cur.execute("""
+            SELECT
+                cert
+            FROM
+                certs
+            WHERE
+                ? = ?
+            """, (
+                query,
+                str(value)
+        ))
+        rows = cur.fetchall()
+        certs = []
+        for row in rows:
+            certs.append(row[0])
+        return certs
+
+    def get_revoked_certs(self):
         cur = self.conn.cursor()
         now = str(datetime.datetime.utcnow())
         cur.execute(
@@ -135,12 +177,13 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 common_name text,
                 not_valid_after timestamp,
                 cert text,
-                revoked boolean
+                revoked boolean,
+                fingerprint text
             )
             """)
         self.conn.commit()
 
-    def save_cert(self, cert):
+    def save_cert(self, cert, fingerprint):
         if self.__conflicting_cert_exists(cert):
             raise StorageEngineCertificateConflict
 
@@ -154,27 +197,65 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 common_name,
                 not_valid_after,
                 cert,
-                revoked
+                revoked,
+                fingerprint
             )
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 str(cert.serial_number),
                 common_name,
                 cert.not_valid_after,
                 cert.public_bytes(Encoding.PEM).decode('UTF-8'),
-                False
+                False,
+                fingerprint
             ))
         self.conn.commit()
 
+    def get_cert(self, serial_number=None, common_name=None, fingerprint=None):
+        cur = self.conn.cursor()
+        query = None
+        value = None
+        if serial_number is not None:
+            query = 'serial_number'
+            value = str(serial_number)
+        elif fingerprint is not None:
+            query = 'fingerprint'
+            value = str(fingerprint)
+        elif common_name is not None:
+            query = 'common_name'
+            value = str(common_name)
+        else:
+            return None
+
+        cur.execute("""
+            SELECT
+                cert
+            FROM
+                certs
+            WHERE
+                %s = %s
+            """, (
+                query,
+                str(value)
+        ))
+        rows = cur.fetchall()
+        certs = []
+        for row in rows:
+            certs.append(row[0])
+        return certs
+
     def revoke_cert(self, serial_number):
         cur = self.conn.cursor()
+        logger.info('Revoking certificate {serial_number}'.format(
+            serial_number=serial_number
+        ))
         cur.execute(
             "UPDATE certs SET revoked=true WHERE serial_number = %s",
             (str(serial_number),)
         )
         self.conn.commit()
 
-    def revoked_certs(self):
+    def get_revoked_certs(self):
         cur = self.conn.cursor()
         now = datetime.datetime.utcnow()
         not_valid_after = now.strftime("%Y-%m-%d %H:%M:%S")

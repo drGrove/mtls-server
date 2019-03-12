@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 import tempfile
@@ -18,97 +19,14 @@ from cert_processor import CertProcessor
 from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorInvalidSignatureError
 import storage
+from utils import User
+from utils import gen_passwd
+from utils import gen_pgp_key
+from utils import generate_csr
+from utils import generate_key
 
 
-def generate_key():
-    return rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=4096,
-        backend=default_backend()
-    )
-
-
-def generate_csr(key, common_name):
-    country = 'US'
-    state = 'CA'
-    locality = 'San Francisco'
-    organization_name = 'My Org'
-    email = 'test@example.com'
-    return x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, country),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, locality),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
-        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-        x509.NameAttribute(NameOID.EMAIL_ADDRESS, email)
-    ])).sign(key, hashes.SHA256(), default_backend())
-
-
-def gen_pgp_key(email, password, gpg):
-    input_data = gpg.gen_key_input(
-        name_email=email,
-        passphrase=password
-    )
-    return gpg.gen_key(input_data)
-
-
-class User:
-
-    def __init__(self, email, password, key, gpg=None):
-        self.gpg = gpg
-        self.email = email
-        self.password = password
-        self.key = key
-        self.pgp_key = gen_pgp_key(email, password, gpg)
-        self.fingerprint = self.pgp_key.fingerprint
-        self.__csrs = []
-
-    @property
-    def email(self):
-        return self.__email
-
-    @email.setter
-    def email(self, email):
-        self.__email = email
-
-    @property
-    def password(self):
-        return self.__password
-
-    @password.setter
-    def password(self, password):
-        self.__password = password
-
-    @property
-    def pgp_key(self):
-        return self.__pgp_key
-
-    @pgp_key.setter
-    def pgp_key(self, pgp_key):
-        self.__pgp_key = pgp_key
-
-    @property
-    def csrs(self):
-        return self.__csrs
-
-    def gen_csr(self, common_name=None):
-        if common_name is None:
-            common_name = self.email
-        csr = generate_csr(self.key, common_name)
-        self.__csrs.append(csr)
-        return csr
-
-
-def gen_passwd():
-    chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    chars += '1234567890'
-    chars += '!@#$%^&*()-_+=|?><,.'
-    pw = ""
-    for c in range(50):
-        pw += random.choice(chars)
-    if re.search('[0-9]+', pw) is None:
-        pw = gen_passwd()
-    return pw
+logging.disable(logging.CRITICAL)
 
 
 class TestCertProcessorBase(unittest.TestCase):
@@ -120,10 +38,10 @@ class TestCertProcessorBase(unittest.TestCase):
         ca_key = self.cert_processor.get_ca_key()
         self.assertIsInstance(ca_key, openssl.rsa._RSAPrivateKey)
 
-    def verify(self):
+    def verify_user(self):
         for user in self.users:
             csr = user.gen_csr()
-            signature = self.gpg.sign(
+            signature = self.user_gpg.sign(
                 csr.public_bytes(serialization.Encoding.PEM),
                 keyid=user.fingerprint,
                 detach=True,
@@ -134,28 +52,62 @@ class TestCertProcessorBase(unittest.TestCase):
             csr_str = csr.public_bytes(serialization.Encoding.PEM)\
                 .decode('utf-8')
             sig_path = '{tmpdir}/{fingerprint}.asc'.format(
-                tmpdir=self.GNUPGHOME.name,
+                tmpdir=self.USER_GNUPGHOME.name,
                 fingerprint=user.fingerprint
             )
             with open(sig_path, 'wb') as sig_file:
                 sig_file.write(bytes(signature_str, 'utf-8'))
-            self.cert_processor.verify(
+            fingerprint = self.cert_processor.verify(
                 csr.public_bytes(serialization.Encoding.PEM),
                 sig_path
             )
             os.remove(sig_path)
+            self.assertEqual(fingerprint, user.pgp_key.fingerprint)
 
-    def generate_cert(self):
-        for user in self.users:
+    def verify_admin(self):
+        for user in self.admin_users:
             csr = user.gen_csr()
-            sig = self.gpg.sign(
+            signature = self.admin_gpg.sign(
                 csr.public_bytes(serialization.Encoding.PEM),
                 keyid=user.fingerprint,
                 detach=True,
                 clearsign=True,
                 passphrase=user.password
             )
-            bcert = self.cert_processor.generate_cert(csr, 60)
+            signature_str = str(signature)
+            csr_str = csr.public_bytes(serialization.Encoding.PEM)\
+                .decode('utf-8')
+            sig_path = '{tmpdir}/{fingerprint}.asc'.format(
+                tmpdir=self.ADMIN_GNUPGHOME.name,
+                fingerprint=user.fingerprint
+            )
+            with open(sig_path, 'wb') as sig_file:
+                sig_file.write(bytes(signature_str, 'utf-8'))
+            fingerprint = self.cert_processor.admin_verify(
+                csr.public_bytes(serialization.Encoding.PEM),
+                sig_path
+            )
+            os.remove(sig_path)
+            self.assertEqual(fingerprint, user.pgp_key.fingerprint)
+
+    def verify_unauthorized_user(self):
+        pass
+
+    def generate_cert(self):
+        for user in self.users:
+            csr = user.gen_csr()
+            sig = self.user_gpg.sign(
+                csr.public_bytes(serialization.Encoding.PEM),
+                keyid=user.fingerprint,
+                detach=True,
+                clearsign=True,
+                passphrase=user.password
+            )
+            bcert = self.cert_processor.generate_cert(
+                csr,
+                60,
+                user.fingerprint
+            )
             cert = x509.load_pem_x509_certificate(
                 bcert,
                 backend=default_backend()
@@ -166,14 +118,18 @@ class TestCertProcessorBase(unittest.TestCase):
         rev_serial_num = None
         for i, user in enumerate(self.users):
             csr = user.gen_csr()
-            sig = self.gpg.sign(
+            sig = self.user_gpg.sign(
                 csr.public_bytes(serialization.Encoding.PEM),
                 keyid=user.fingerprint,
                 detach=True,
                 clearsign=True,
                 passphrase=user.password
             )
-            bcert = self.cert_processor.generate_cert(csr, 60)
+            bcert = self.cert_processor.generate_cert(
+                csr,
+                60,
+                user.fingerprint
+            )
             cert = x509.load_pem_x509_certificate(
                 bcert,
                 backend=default_backend()
@@ -212,20 +168,20 @@ class TestCertProcessorBase(unittest.TestCase):
     def revoke_cert(self):
         user = self.users[0]
         csr = user.gen_csr()
-        sig = self.gpg.sign(
+        sig = self.user_gpg.sign(
             csr.public_bytes(serialization.Encoding.PEM),
             keyid=user.fingerprint,
             detach=True,
             clearsign=True,
             passphrase=user.password
         )
-        bcert = self.cert_processor.generate_cert(csr, 60)
+        bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
         cert = x509.load_pem_x509_certificate(
             bcert,
             backend=default_backend()
         )
         self.cert_processor.revoke_cert(cert.serial_number)
-        rev_cert = self.cert_processor.storage.revoked_certs()[0]
+        rev_cert = self.cert_processor.storage.get_revoked_certs()[0]
         rev_cert = x509.load_pem_x509_certificate(
             bytes(str(rev_cert), 'UTF-8'),
             backend=default_backend()
@@ -233,9 +189,10 @@ class TestCertProcessorBase(unittest.TestCase):
         self.assertEqual(cert.serial_number, rev_cert.serial_number)
 
 
-class TestCertProcessorSQLite(unittest.TestCase):
+class TestCertProcessorSQLite(TestCertProcessorBase):
     def setUp(self):
-        self.GNUPGHOME = tempfile.TemporaryDirectory()
+        self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
         config = ConfigParser()
         config.read_string(
             """
@@ -246,14 +203,18 @@ class TestCertProcessorSQLite(unittest.TestCase):
             alternate_name = *.myname.com
 
             [gnupg]
-            home={gnupghome}
+            user={user_gnupghome}
+            admin={admin_gnupghome}
 
             [storage]
             engine=sqlite3
 
             [storage.sqlite3]
             db_path=:memory:
-            """.format(gnupghome=self.GNUPGHOME.name)
+            """.format(
+                user_gnupghome=self.USER_GNUPGHOME.name,
+                admin_gnupghome=self.ADMIN_GNUPGHOME.name,
+            )
         )
         self.common_name = 'user@host'
         self.key = generate_key()
@@ -263,17 +224,51 @@ class TestCertProcessorSQLite(unittest.TestCase):
         self.engine.conn.commit()
         self.engine.init_db()
         self.cert_processor = CertProcessor(config)
-        self.gpg = gnupg.GPG(gnupghome=self.GNUPGHOME.name)
+        self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
+        self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
-            User('user@host', gen_passwd(), generate_key(), gpg=self.gpg),
-            User('user2@host', gen_passwd(), generate_key(), gpg=self.gpg),
-            User('user3@host', gen_passwd(), generate_key(), gpg=self.gpg)
+            User('user@host', gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                'user2@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            ),
+            User(
+                'user3@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.invalid_users = [
+            User(
+                'user4@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.admin_users = [
+            User(
+                'admin@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.admin_gpg
+            )
         ]
         for user in self.users:
-            self.gpg.import_keys(self.gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
+        for user in self.admin_users:
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
 
     def tearDown(self):
-        self.GNUPGHOME.cleanup()
+        self.USER_GNUPGHOME.cleanup()
+        self.ADMIN_GNUPGHOME.cleanup()
 
     def test_get_ca_cert(self):
         self.get_ca_cert()
@@ -281,8 +276,8 @@ class TestCertProcessorSQLite(unittest.TestCase):
     def test_has_ca_key(self):
         self.has_ca_key()
 
-    def test_verify(self):
-        self.verify()
+    def test_verify_user(self):
+        self.verify_user()
 
     def test_generate_cert(self):
         self.generate_cert()
@@ -299,7 +294,8 @@ class TestCertProcessorSQLite(unittest.TestCase):
 
 class TestCertProcessorPostgres(TestCertProcessorBase):
     def setUp(self):
-        self.GNUPGHOME = tempfile.TemporaryDirectory()
+        self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
         config = ConfigParser()
         config.read_string(
             """
@@ -310,7 +306,8 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
             alternate_name = *.myname.com
 
             [gnupg]
-            home={gnupghome}
+            user={user_gnupghome}
+            admin={admin_gnupghome}
 
             [storage]
             engine=postgres
@@ -320,7 +317,10 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
             user = postgres
             password = postgres
             host = localhost
-            """.format(gnupghome=self.GNUPGHOME.name)
+            """.format(
+                user_gnupghome=self.USER_GNUPGHOME.name,
+                admin_gnupghome=self.ADMIN_GNUPGHOME.name
+            )
         )
         self.common_name = 'user@host'
         self.key = generate_key()
@@ -331,17 +331,51 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
         self.engine.init_db()
 
         self.cert_processor = CertProcessor(config)
-        self.gpg = gnupg.GPG(gnupghome=self.GNUPGHOME.name)
+        self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
+        self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
-            User('user@host', gen_passwd(), generate_key(), gpg=self.gpg),
-            User('user2@host', gen_passwd(), generate_key(), gpg=self.gpg),
-            User('user3@host', gen_passwd(), generate_key(), gpg=self.gpg)
+            User('user@host', gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                'user2@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            ),
+            User(
+                'user3@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.invalid_users = [
+            User(
+                'user4@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.admin_users = [
+            User(
+                'admin@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.admin_gpg
+            )
         ]
         for user in self.users:
-            self.gpg.import_keys(self.gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
+        for user in self.admin_users:
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
 
     def tearDown(self):
-        self.GNUPGHOME.cleanup()
+        self.USER_GNUPGHOME.cleanup()
+        self.ADMIN_GNUPGHOME.cleanup()
 
     def test_get_ca_cert(self):
         self.get_ca_cert()
@@ -349,8 +383,14 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
     def test_has_ca_key(self):
         self.has_ca_key()
 
-    def test_verify(self):
-        self.verify()
+    def test_verify_user(self):
+        self.verify_user()
+
+    def test_verify_admin(self):
+        self.verify_admin()
+
+    def test_verify_unauthorized_user(self):
+        self.verify_unauthorized_user()
 
     def test_generate_cert(self):
         self.generate_cert()

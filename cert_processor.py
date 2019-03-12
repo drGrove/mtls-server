@@ -1,5 +1,4 @@
 import datetime
-import logging
 import os
 import uuid
 
@@ -9,20 +8,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-
 import gnupg
 
+from logger import logger
 from storage import StorageEngine
-
-# Log to the screen
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(logging.Formatter(
-    '%(asctime)s: "%(filename)s" (line: %(lineno)d) - %(levelname)s ' +
-    '%(message)s'
-))
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(stream_handler)
 
 
 class CertProcessorKeyNotFoundError(Exception):
@@ -33,17 +22,31 @@ class CertProcessorInvalidSignatureError(Exception):
     pass
 
 
+class CertProcessorUntrustedSignatureError(Exception):
+    pass
+
+
 class CertProcessor:
     def __init__(self, config):
-        gnupg_path = config.get('gnupg', 'home')
-        if not os.path.isabs(gnupg_path):
-            gnupg_path = os.path.abspath(
+        user_gnupg_path = config.get('gnupg', 'user')
+        admin_gnupg_path = config.get('gnupg', 'admin')
+        if not os.path.isabs(user_gnupg_path):
+            user_gnupg_path = os.path.abspath(
                 os.path.join(
-                    os.path.dirname(__file__), gnupg_path
+                    os.path.dirname(__file__), user_gnupg_path
                 )
             )
-        self.gpg = gnupg.GPG(gnupghome=gnupg_path)
-        self.gpg.encoding = 'utf-8'
+        if not os.path.isabs(admin_gnupg_path):
+            admin_gnupg_path = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__), admin_gnupg_path
+                )
+            )
+
+        self.user_gpg = gnupg.GPG(gnupghome=user_gnupg_path)
+        self.admin_gpg = gnupg.GPG(gnupghome=admin_gnupg_path)
+        self.user_gpg.encoding = 'utf-8'
+        self.admin_gpg.encoding = 'utf-8'
         if config.get('storage', 'engine', fallback=None) is None:
             storage.StorageEngineMissing()
         self.storage = StorageEngine(config)
@@ -52,12 +55,41 @@ class CertProcessor:
         self.openssl_format = serialization.PrivateFormat.TraditionalOpenSSL
         self.no_encyption = serialization.NoEncryption()
 
-    def verify(self, csr, signature):
-        verified = self.gpg.verify_data(signature,
-                                        csr)
+    def verify(self, data, signature):
+        verified = self.user_gpg.verify_data(
+            signature,
+            data
+        )
+        if not verified:
+            raise ValueError("Signature could not be verified!")
+        if (verified.trust_level is not None and
+           verified.trust_level < verified.TRUST_FULLY):
+            logger.error(
+                "User with fingerprint: {} does not have the required trust"
+                .format(verified.pubkey_fingerprint)
+            )
+            raise CertProcessorUntrustedSignatureError
         if not verified.valid:
-            logger.error(str(verified))
+            logger.error(str(verified.trust_text))
             raise CertProcessorInvalidSignatureError
+        return verified.pubkey_fingerprint
+
+    def admin_verify(self, data, signature):
+        verified = self.admin_gpg.verify_data(
+            signature,
+            data
+        )
+        if not verified.valid:
+            logger.error(str(verified.trust_text))
+            raise CertProcessorInvalidSignatureError
+        if (verified.trust_level is not None and
+           verified.trust_level < verified.TRUST_FULLY):
+            logger.error(
+                "User with fingerprint: {} does not have the required trust"
+                .format(verified.pubkey_fingerprint)
+            )
+            raise CertProcessorUntrustedSignatureError
+        return verified.pubkey_fingerprint
 
     def get_csr(self, csr):
         try:
@@ -169,7 +201,7 @@ class CertProcessor:
             )
         return ca_cert
 
-    def generate_cert(self, csr, lifetime):
+    def generate_cert(self, csr, lifetime, fingerprint):
         ca_pkey = self.get_ca_key()
         ca_cert = self.get_ca_cert(ca_pkey)
         now = datetime.datetime.utcnow()
@@ -199,7 +231,7 @@ class CertProcessor:
             algorithm=hashes.SHA256(),
             backend=default_backend()
         )
-        self.storage.save_cert(cert)
+        self.storage.save_cert(cert, fingerprint)
         return cert.public_bytes(serialization.Encoding.PEM)
 
     def get_crl(self):
@@ -212,7 +244,7 @@ class CertProcessor:
         ).next_update(
             datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
         )
-        for cert in self.storage.revoked_certs():
+        for cert in self.storage.get_revoked_certs():
             # Convert the string cert into a cryptography cert object
             cert = x509.load_pem_x509_certificate(
                 bytes(str(cert), 'UTF-8'),

@@ -1,6 +1,7 @@
-import unittest
 import configparser
 import datetime
+import logging
+import unittest
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -9,6 +10,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 import storage
+
+
+logging.disable(logging.CRITICAL)
 
 
 def generate_fake_cert(common_name, serial_number=None, expired=False):
@@ -85,7 +89,7 @@ class TestSQLiteStorageEngine(unittest.TestCase):
         self.assertIsNone(cur.fetchone())
 
         cert = generate_fake_cert(common_name)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
         cur.execute(query, [common_name])
         self.assertIsNotNone(cur.fetchone())
@@ -99,20 +103,20 @@ class TestSQLiteStorageEngine(unittest.TestCase):
 
         # Saving a certificate for the first time
         cert = generate_fake_cert('user@host1')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
         # Superceeding an expired certificate
         cert = generate_fake_cert('user@host2', expired=True)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         cert = generate_fake_cert('user@host2')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
         # Superceeding a revoked certificate
         cert = generate_fake_cert('user@host3')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         self.engine.revoke_cert(cert.serial_number)
         cert = generate_fake_cert('user@host3')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
     def test_save_cert_failure_conditions(self):
         """
@@ -123,17 +127,17 @@ class TestSQLiteStorageEngine(unittest.TestCase):
 
         # Conflicting serial number with any previous certificate
         cert = generate_fake_cert('user@host1', serial_number=123)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         cert = generate_fake_cert('user@host1', serial_number=123)
         with self.assertRaises(storage.StorageEngineCertificateConflict):
-            self.engine.save_cert(cert)
+            self.engine.save_cert(cert, 'ABCDEFGH')
 
         # Conflicting CommonName with still-valid certificate
         cert = generate_fake_cert('user@host2')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         cert = generate_fake_cert('user@host2')
         with self.assertRaises(storage.StorageEngineCertificateConflict):
-            self.engine.save_cert(cert)
+            self.engine.save_cert(cert, 'ABCDEFGH')
 
     def test_revoke_cert_persists_data(self):
         """
@@ -144,7 +148,7 @@ class TestSQLiteStorageEngine(unittest.TestCase):
         cur = self.engine.conn.cursor()
 
         cert = generate_fake_cert('user@host', serial_number=123)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
         cur.execute(query, [str(cert.serial_number)])
         self.assertEqual(cur.fetchone()[0], 0)
@@ -192,7 +196,7 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         self.assertIsNone(cur.fetchone())
 
         cert = generate_fake_cert(common_name)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
         cur.execute(query, [common_name])
         self.assertIsNotNone(cur.fetchone())
@@ -206,20 +210,20 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
 
         # Saving a certificate for the first time
         cert = generate_fake_cert('user@host1')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
         # Superceeding an expired certificate
         cert = generate_fake_cert('user@host2', expired=True)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         cert = generate_fake_cert('user@host2')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
         # Superceeding a revoked certificate
         cert = generate_fake_cert('user@host3')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         self.engine.revoke_cert(cert.serial_number)
         cert = generate_fake_cert('user@host3')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
 
     def test_save_cert_failure_conditions(self):
         """
@@ -230,17 +234,17 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
 
         # Conflicting serial number with any previous certificate
         cert = generate_fake_cert('user@host1', serial_number=123)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         cert = generate_fake_cert('user@host1', serial_number=123)
         with self.assertRaises(storage.StorageEngineCertificateConflict):
-            self.engine.save_cert(cert)
+            self.engine.save_cert(cert, 'ABCDEFGH')
 
         # Conflicting CommonName with still-valid certificate
         cert = generate_fake_cert('user@host2')
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         cert = generate_fake_cert('user@host2')
         with self.assertRaises(storage.StorageEngineCertificateConflict):
-            self.engine.save_cert(cert)
+            self.engine.save_cert(cert, 'ABCDEFGH')
 
     def test_revoke_cert_persists_data(self):
         """
@@ -249,7 +253,7 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         query = "SELECT revoked FROM certs WHERE serial_number = %s"
         cur = self.engine.conn.cursor()
         cert = generate_fake_cert('user@host', serial_number=123)
-        self.engine.save_cert(cert)
+        self.engine.save_cert(cert, 'ABCDEFGH')
         cur.execute(query, (str(cert.serial_number),))
         self.assertEqual(cur.fetchone()[0], False)
         self.engine.revoke_cert(cert.serial_number)

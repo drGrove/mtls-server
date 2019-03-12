@@ -46,8 +46,14 @@ ifeq "${CI}" ""
 endif
 
 test-by-name:
+ifeq "${CI}" ""
+	$(MAKE) run-postgres
+	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
+endif
 	@$(PIP_ENV)/bin/python3 -m unittest $(TEST) -v
-
+ifeq "${CI}" ""
+		@docker stop mtls-postgres
+endif
 
 build-image:
 	@docker build -t mtls-server:$(TAG) .

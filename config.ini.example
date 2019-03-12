@@ -12,7 +12,8 @@ issuer=My Company Name
 alternate_name=*.myname.com
 
 [gnupg]
-home=secrets/gnupg/
+user=secrets/gnupg/
+admin=secrets/gnupg_admin/
 
 [storage]
 engine=sqlite3
