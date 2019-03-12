@@ -225,7 +225,7 @@ class TestServer(unittest.TestCase):
         for user in self.users:
             csr = user.gen_csr()
             sig = self.user_gpg.sign(
-                csr.public_bytes(serialization.Encode.PEM),
+                csr.public_bytes(serialization.Encoding.PEM),
                 keyid=user.fingerprint,
                 detach=True,
                 clearsign=True,
@@ -259,7 +259,7 @@ class TestServer(unittest.TestCase):
             passphrase=user.password
         )
         payload = {
-            'csr': csr_public_bytes.decode('utf-8'),
+            'csr': csr.public_bytes.decode('utf-8'),
             'signature': str(sig),
             'lifetime': 60,
             'type': 'CREATE_CERTIFICATE'
