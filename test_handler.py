@@ -7,6 +7,7 @@ import unittest
 from configparser import ConfigParser
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -17,7 +18,7 @@ from cert_processor import CertProcessor
 from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorInvalidSignatureError
 from cert_processor import CertProcessorUntrustedSignatureError
-from server import Server
+from handler import Handler
 import storage
 from utils import User
 from utils import gen_passwd
@@ -29,7 +30,7 @@ from utils import generate_key
 logging.disable(logging.CRITICAL)
 
 
-class TestServer(unittest.TestCase):
+class TestHandler(unittest.TestCase):
     def setUp(self):
         self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
         self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
@@ -69,7 +70,7 @@ class TestServer(unittest.TestCase):
         self.engine.conn.commit()
         self.engine.init_db()
         self.cert_processor = CertProcessor(self.config)
-        self.server = Server(self.config)
+        self.handler = Handler(self.config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.invalid_gpg = gnupg.GPG(gnupghome=self.INVALID_GNUPGHOME.name)
@@ -157,8 +158,7 @@ class TestServer(unittest.TestCase):
             passphrase=user.password
         )
         body['signature'] = str(sig)
-        response = json.loads(self.server.revoke_cert(body)[0])
-        print(json.dumps(response))
+        response = json.loads(self.handler.revoke_cert(body)[0])
         self.assertTrue(response['msg'] == 'success')
 
     def test_admin_revoke_cert_serial_number(self):
@@ -188,8 +188,7 @@ class TestServer(unittest.TestCase):
             passphrase=admin.password
         )
         body['signature'] = str(sig)
-        response = json.loads(self.server.revoke_cert(body)[0])
-        print(json.dumps(response))
+        response = json.loads(self.handler.revoke_cert(body)[0])
         self.assertTrue(response['msg'] == 'success')
 
     def test_invalid_revoke_cert_serial_number(self):
@@ -218,7 +217,7 @@ class TestServer(unittest.TestCase):
             passphrase=user.password
         )
         body['signature'] = str(sig)
-        response = json.loads(self.server.revoke_cert(body)[0])
+        response = json.loads(self.handler.revoke_cert(body)[0])
         self.assertEqual(response['error'], True)
 
     def test_create_cert(self):
@@ -232,19 +231,21 @@ class TestServer(unittest.TestCase):
                 passphrase=user.password
             )
             payload = {
-                'csr': csr_public_bytes.decode('utf-8'),
+                'csr': csr.public_bytes(
+                    serialization.Encoding.PEM
+                ).decode('utf-8'),
                 'signature': str(sig),
                 'lifetime': 60,
                 'type': 'CREATE_CERTIFICATE'
             }
-            response = json.loads(self.server.create_cert(body)[0])
+            response = json.loads(self.handler.create_cert(payload)[0])
             self.assertIn("-----BEGIN CERTIFICATE-----", response['cert'])
             cert = x509.load_pem_x509_certificate(
                 response['cert'].encode('UTF-8'),
                 backend=default_backend()
             )
             self.assertIsInstance(
-                response['cert'].encode('UTF-8'),
+                cert,
                 openssl.x509._Certificate
             )
 
@@ -259,10 +260,12 @@ class TestServer(unittest.TestCase):
             passphrase=user.password
         )
         payload = {
-            'csr': csr.public_bytes.decode('utf-8'),
+            'csr': csr.public_bytes(
+                serialization.Encoding.PEM
+            ).decode('utf-8'),
             'signature': str(sig),
             'lifetime': 60,
             'type': 'CREATE_CERTIFICATE'
         }
-        response = json.loads(self.server.create_cert(body)[0])
+        response = json.loads(self.handler.create_cert(payload)[0])
         self.assertEqual(response['error'], True)

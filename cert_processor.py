@@ -61,7 +61,10 @@ class CertProcessor:
             data
         )
         if not verified:
-            raise ValueError("Signature could not be verified!")
+            logger.error(
+                'Invalid signature for {}'.format(verified.fingerprint)
+            )
+            raise CertProcessorInvalidSignatureError
         if (verified.trust_level is not None and
            verified.trust_level < verified.TRUST_FULLY):
             logger.error(
@@ -79,8 +82,12 @@ class CertProcessor:
             signature,
             data
         )
+        if not verified:
+            raise CertProcessorInvalidSignatureError
         if not verified.valid:
-            logger.error(str(verified.trust_text))
+            logger.error(
+                'Invalid signature for {}'.format(verified.fingerprint)
+            )
             raise CertProcessorInvalidSignatureError
         if (verified.trust_level is not None and
            verified.trust_level < verified.TRUST_FULLY):
