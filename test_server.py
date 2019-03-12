@@ -37,6 +37,10 @@ class TestServer(unittest.TestCase):
         self.config = ConfigParser()
         self.config.read_string(
             """
+            [mtls]
+            min_lifetime=60
+            max_lifetime=0
+
             [ca]
             key = secrets/certs/authority/RootCA.key
             cert = secrets/certs/authority/RootCA.pem
@@ -217,8 +221,48 @@ class TestServer(unittest.TestCase):
         response = json.loads(self.server.revoke_cert(body)[0])
         self.assertEqual(response['error'], True)
 
-    # def test_create_cert(self):
-    #     pass
+    def test_create_cert(self):
+        for user in self.users:
+            csr = user.gen_csr()
+            sig = self.user_gpg.sign(
+                csr.public_bytes(serialization.Encode.PEM),
+                keyid=user.fingerprint,
+                detach=True,
+                clearsign=True,
+                passphrase=user.password
+            )
+            payload = {
+                'csr': csr_public_bytes.decode('utf-8'),
+                'signature': str(sig),
+                'lifetime': 60,
+                'type': 'CREATE_CERTIFICATE'
+            }
+            response = json.loads(self.server.create_cert(body)[0])
+            self.assertIn("-----BEGIN CERTIFICATE-----", response['cert'])
+            cert = x509.load_pem_x509_certificate(
+                response['cert'].encode('UTF-8'),
+                backend=default_backend()
+            )
+            self.assertIsInstance(
+                response['cert'].encode('UTF-8'),
+                openssl.x509._Certificate
+            )
 
-    # def test_invalid_user_create_cert(self):
-    #     pass
+    def test_invalid_user_create_cert(self):
+        user = self.invalid_users[0]
+        csr = user.gen_csr()
+        sig = self.invalid_gpg.sign(
+            csr.public_bytes(serialization.Encoding.PEM),
+            keyid=user.fingerprint,
+            detach=True,
+            clearsign=True,
+            passphrase=user.password
+        )
+        payload = {
+            'csr': csr_public_bytes.decode('utf-8'),
+            'signature': str(sig),
+            'lifetime': 60,
+            'type': 'CREATE_CERTIFICATE'
+        }
+        response = json.loads(self.server.create_cert(body)[0])
+        self.assertEqual(response['error'], True)
