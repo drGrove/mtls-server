@@ -1,13 +1,14 @@
 FROM python:3.7-slim-stretch
 MAINTAINER Danny Grove <danny@drgrovellc.com>
-WORKDIR /srv/
-ADD requirements.txt /srv/
 RUN apt update && \
-  apt install -y gnupg openssl build-essential make && \
-  pip3 install -r requirements.txt --src /usr/local/src
-ADD *.py /srv/
-ADD scripts/start.sh /srv/
-ADD uwsgi.ini /srv/
-RUN chown -R www-data:www-data /srv/
+  apt install -y gnupg openssl build-essential make
+RUN useradd -m mtls
+RUN echo "export PATH=/home/mtls/.local/bin:$PATH" >> .bashrc
+USER mtls
+WORKDIR /home/mtls/
+ADD requirements.txt /home/mtls/
+RUN pip3 install -r requirements.txt --src /usr/local/src --user
+ADD *.py /home/mtls/
+ADD uwsgi.ini /home/mtls/
 EXPOSE 4000
-CMD ["./start.sh"]
+CMD ["/home/mtls/.local/bin/uwsgi", "--ini", "uwsgi.ini"]
