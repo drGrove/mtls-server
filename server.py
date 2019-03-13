@@ -13,9 +13,19 @@ from handler import Handler
 from logger import logger
 
 __author__ = 'Danny Grove <danny@drgrovellc.com>'
-VERSION = 'version 0.1'
+VERSION = 'version 0.5'
 
 app = Flask(__name__)
+handler = Handler()
+
+# This will generate a CA Certificate and Key if one does not exist
+try:
+    cert = handler.cert_processor.get_ca_cert()
+except CertProcessorKeyNotFoundError:
+    # Auto-gen a new key and cert if one is not presented and this is the
+    # first call ever made to the handler
+    key = handler.cert_processor.get_ca_key()
+    cert = handler.cert_processor.get_ca_cert(key)
 
 
 @app.route('/', methods=['POST'])
@@ -42,15 +52,5 @@ def get_crl():
     return crl.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
 
 
-if __name__ == '__main__':
-    # Prior to initializing the handler ensure that a CA certificate exits
-    # otherwise create one so it can be used across endpoints
-    handler = Handler()
-    try:
-        cert = handler.cert_processor.get_ca_cert()
-    except CertProcessorKeyNotFoundError:
-        # Auto-gen a new key and cert if one is not presented and this is the
-        # first call ever made to the handler
-        key = handler.cert_processor.get_ca_key()
-        cert = handler.cert_processor.get_ca_cert(key)
+if __name__ == "__main__":
     app.run(port=handler.config.get('mtls', 'port', fallback=4000))

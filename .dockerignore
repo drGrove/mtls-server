@@ -1,6 +1,8 @@
 secrets/*
 env/*
-*.pyc
 *.example
+*.db
+test_*.py
 config.ini
+*.pyc
 __pycache__
