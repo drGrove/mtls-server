@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
-chown -R www-data:www-data /srv/
+ENV=${ENV:-production}
+if [[ "$ENV" -eq "production" ]]; then
+    chown -R www-data:www-data /srv/
+fi
 uwsgi --ini uwsgi.ini

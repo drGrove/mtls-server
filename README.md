@@ -30,6 +30,32 @@ Creating services that inheritely trust no one unless specifically authorized.  
 trust, multi-factor authentication scheme while also timeboxing access to the requested service in case of compromise or
 loss of access keys.
 
+## Production ##
+
+### Running From Source ###
+
+1. Download the package
+
+    ```shell
+    git clone https://github.com/drGrove/mtls-server
+    ```
+
+2. Install Packages
+
+    ```shell
+    make setup
+    ```
+
+3. Run the server (This required docker)
+
+    ```shell
+    make run-prod
+    ```
+
+   ```shell
+
+   ```
+
 ## Development ##
 
 ### Dependencies ###
@@ -43,7 +69,7 @@ loss of access keys.
 1. Install the git hooks, generate base secrets for testing and install dependencies
 
     ```shell
-    make setup
+    make setup-dev
     cp config.ini.example config.ini
     ```
 

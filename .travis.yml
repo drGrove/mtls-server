@@ -7,14 +7,21 @@ python:
 services:
   - postgresql
 
+env:
+  - PIPENV_IGNORE_VIRTUALENVS=1
+
 addons:
   apt:
     packages:
       - cmake
 
+before_install: "pip3 install pipenv"
+install: "make setup-dev"
+
 before_script:
+  - cp config.ini.example config.ini
   - psql -c 'create database mtls;' -U postgres
-  - pip3 install pipenv
+  - make create-ca
 
 script:
   - make test
