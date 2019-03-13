@@ -29,12 +29,25 @@ except CertProcessorKeyNotFoundError:
 
 
 @app.route('/', methods=['POST'])
-def main_handler():
+def create_handler():
     body = request.get_json()
-    if body['type'] == "CREATE_CERTIFICATE":
+    if body['type'] == "CERTIFICATE":
         return handler.create_cert(body)
-    if body['type'] == "REVOKE_CERTIFICATE":
+    if body['type'] == "USER":
+        return handler.add_user(body)
+    if body['type'] == "ADMIN":
+        return handler.add_user(body, is_admin=True)
+
+
+@app.route('/', methods['DELETE'])
+def delete_handler():
+    body = request.get_json()
+    if body['type'] == "CERTIFICATE":
         return handler.revoke_cert(body)
+    if body['type'] == "USER":
+        return handler.remove_user(body)
+    if body['type'] == "ADMIN":
+        return handler.remove_user(body, is_admin=True)
 
 
 @app.route('/ca', methods=['GET'])

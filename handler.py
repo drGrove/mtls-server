@@ -1,7 +1,6 @@
 import os
 from configparser import ConfigParser
 import json
-import uuid
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -15,13 +14,8 @@ from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorInvalidSignatureError
 from cert_processor import CertProcessorUntrustedSignatureError
 from logger import logger
-
-
-def error_response(msg, status_code=501):
-    return json.dumps({
-        'error': True,
-        'msg': msg
-    }), status_code
+from utils import error_response
+from utils import write_sig_to_file
 
 
 class Handler:
@@ -78,9 +72,7 @@ class Handler:
             return error_response('Could not load CSR')
         try:
             csr_public_bytes = csr.public_bytes(serialization.Encoding.PEM)
-            sig_path = '/tmp/{}.asc'.format(uuid.uuid4())
-            with open(sig_path, 'wb') as f:
-                f.write(bytes(body['signature'], 'utf-8'))
+            sig_path = write_sig_to_file(body['signature'])
             fingerprint = self.cert_processor.verify(
                 csr_public_bytes,
                 sig_path
@@ -103,7 +95,7 @@ class Handler:
                 fingerprint
             )
             return json.dumps({
-                'cert': cert.decode('utf-8')
+                'cert': cert.decode('UTF-8')
             }), 200
         except CertProcessorKeyNotFoundError:
             logger.critical(
@@ -118,19 +110,18 @@ class Handler:
         """
         is_admin = False
         fingerprint = None
-        sig_path = '/tmp/{}.sig'.format(uuid.uuid4())
-        with open(sig_path, 'wb') as f:
-            f.write(body['signature'].encode('utf-8'))
-
+        sig_path = write_sig_to_file(body['signature'])
         try:
             fingerprint = self.cert_processor.admin_verify(
-                json.dumps(body['query']).encode('utf-8'),
+                json.dumps(body['query']).encode('UTF-8'),
                 sig_path
             )
             is_admin = True
             logger.info(
-                'Admin {admin_fingerprint} revoking certificate'.format(
-                    admin_fingerprint=fingerprint
+                'Admin {adminfp} revoking certificate with query {query}'
+                .format(
+                    adminfp=fingerprint,
+                    query=json.dumps(body['query'])
                 )
             )
             os.remove(sig_path)
@@ -138,12 +129,14 @@ class Handler:
                 CertProcessorUntrustedSignatureError):
             try:
                 fingerprint = self.cert_processor.verify(
-                    json.dumps(body['query']).encode('utf-8'),
+                    json.dumps(body['query']).encode('UTF-8'),
                     sig_path
                 )
                 logger.info(
-                    'User {user_fingerprint} revoking certificate'.format(
-                        user_fingerprint=fingerprint
+                    'User {userfp} revoking certificate with query {query}'
+                    .format(
+                        userfp=fingerprint,
+                        query=json.dumps(body['query'])
                     )
                 )
                 os.remove(sig_path)
@@ -157,10 +150,96 @@ class Handler:
             return error_response('No Cert to revoke')
         for cert in certs:
             cert = x509.load_pem_x509_certificate(
-                str(cert).encode('utf-8'),
+                str(cert).encode('UTF-8'),
                 backend=default_backend()
             )
             self.cert_processor.revoke_cert(cert.serial_number)
         return json.dumps({
             'msg': 'success'
         }), 200
+
+    def add_user(self, body, is_admin=False):
+        fingerprint = None
+        sig_path = write_sig_to_file(body['signature'])
+        try:
+            fingerprint = self.cert_processor.admin_verify(
+                body['fingerprint'].encode('UTF-8'),
+                sig_path
+            )
+            logger.info(
+                'Admin {adminfp} adding user {userfp}'.format(
+                    adminfp=fingerprint,
+                    userfp=body['fingerprint']
+                )
+            )
+        except (CertProcessorInvalidSignatureError,
+                CertProcessorUntrustedSignatureError):
+            os.remove(sig_path)
+            logger.error(
+                    'Invalid signature on adding fingerprint: {fp}'.format(
+                        fp=body['fingerprint']
+                    )
+            )
+            return error_response('Unauthorized', 403)
+        # Remove signature file
+        os.remove(sig_path)
+
+        if is_admin:
+            # Add a user to the admin trust store
+            self.cert_processor.admin_gpg.recv_keys(
+                self.config.get(
+                    'gnupg',
+                    'keyserver',
+                    fallback='keyserver.ubuntu.com'
+                ),
+                body['fingerprint']
+            )
+
+        # Add the user to the user trust store
+        self.cert_processor.user_gpg.recv_keys(
+            self.config.get(
+                'gnupg',
+                'keyserver',
+                fallback='keyserver.ubuntu.com'
+            ),
+            body['fingerprint']
+        )
+        return json.dumps({
+            'msg': 'success'
+        }), 201
+
+    def remove_user(self, body, is_admin=False):
+        fingerprint = None
+        sig_path = write_sig_to_file(body['signature'])
+        try:
+            fingerprint = self.cert_processor.admin_verify(
+                body['fingerprint'].encode('UTF-8'),
+                sig_path
+            )
+            logger.info(
+                'Admin {adminfp} adding user {userfp}'.format(
+                    adminfp=fingerprint,
+                    userfp=body['fingerprint']
+                )
+            )
+        except (CertProcessorInvalidSignatureError,
+                CertProcessorUntrustedSignatureError):
+            os.remove(sig_path)
+            logger.error(
+                    'Invalid signature on adding fingerprint: {fp}'.format(
+                        fp=body['fingerprint']
+                    )
+            )
+            return error_response('Unauthorized', 403)
+        # Remove signature file
+        os.remove(sig_path)
+
+        if is_admin:
+            # Add a user to the admin trust store
+            self.cert_processor.admin_gpg.delete_keys(body['fingerprint'])
+
+        # Add the user to the user trust store
+        self.cert_processor.user_gpg.delete_keys(body['fingerprint'])
+        return json.dumps({
+            'msg': 'success'
+        }), 201
