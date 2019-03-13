@@ -35,6 +35,7 @@ class TestHandler(unittest.TestCase):
         self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
         self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
         self.INVALID_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.NEW_USER_GNUPGHOME = tempfile.TemporaryDirectory()
         self.config = ConfigParser()
         self.config.read_string(
             """
@@ -74,6 +75,7 @@ class TestHandler(unittest.TestCase):
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.invalid_gpg = gnupg.GPG(gnupghome=self.INVALID_GNUPGHOME.name)
+        self.new_user_gpg = gnupg.GPG(gnupghome=self.NEW_USER_GNUPGHOME.name)
         self.users = [
             User('user@host', gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -105,6 +107,20 @@ class TestHandler(unittest.TestCase):
                 gpg=self.admin_gpg
             )
         ]
+        self.new_users = [
+            User(
+                'newuser@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_user_gpg
+            ),
+            User(
+                'newuser2@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_user_gpg
+            )
+        ]
         for user in self.users:
             self.user_gpg.import_keys(
                 self.user_gpg.export_keys(user.fingerprint)
@@ -126,11 +142,17 @@ class TestHandler(unittest.TestCase):
                 self.invalid_gpg.export_keys(user.fingerprint)
             )
             self.invalid_gpg.trust_keys([user.fingerprint], 'TRUST_ULTIMATE')
+        for user in self.new_users:
+            self.new_user_gpg.import_keys(
+                self.new_user_gpg.export_keys(user.fingerprint)
+            )
+            self.new_user_gpg.trust_keys([user.fingerprint], 'TRUST_ULTIMATE')
 
     def tearDown(self):
         self.USER_GNUPGHOME.cleanup()
         self.ADMIN_GNUPGHOME.cleanup()
         self.INVALID_GNUPGHOME.cleanup()
+        self.NEW_USER_GNUPGHOME.cleanup()
 
     def test_user_revoke_cert_serial_number(self):
         user = self.users[0]
@@ -268,4 +290,151 @@ class TestHandler(unittest.TestCase):
             'type': 'CREATE_CERTIFICATE'
         }
         response = json.loads(self.handler.create_cert(payload)[0])
+        self.assertEqual(response['error'], True)
+
+    def test_add_user_valid_admin(self):
+        admin = self.admin_users[0]
+        new_user = self.new_users[0]
+        sig = self.admin_gpg.sign(
+            new_user.fingerprint.encode('UTF-8'),
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': new_user.fingerprint,
+            'signature': str(sig),
+            'type': 'USER'
+        }
+        response = json.loads(self.handler.add_user(payload)[0])
+        self.assertEqual(response['msg'], 'success')
+
+    def test_add_user_invalid_admin(self):
+        user = self.users[0]
+        new_user = self.new_users[0]
+        sig = self.user_gpg.sign(
+            new_user.fingerprint.encode('UTF-8'),
+            keyid=user.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=user.password
+        )
+        payload = {
+            'fingerprint': new_user.fingerprint,
+            'signature': str(sig),
+            'type': 'USER'
+        }
+        response = json.loads(self.handler.add_user(payload)[0])
+        self.assertEqual(response['error'], True)
+
+    def test_add_admin_valid_admin(self):
+        admin = self.admin_users[0]
+        new_user = self.new_users[0]
+        sig = self.admin_gpg.sign(
+            new_user.fingerprint.encode('UTF-8'),
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': new_user.fingerprint,
+            'signature': str(sig),
+            'type': 'USER'
+        }
+        response = json.loads(self.handler.add_user(payload, is_admin=True)[0])
+        self.assertEqual(response['msg'], 'success')
+
+    def test_add_admin_invalid_admin(self):
+        admin = self.users[0]
+        new_user = self.new_users[0]
+        sig = self.admin_gpg.sign(
+            new_user.fingerprint.encode('UTF-8'),
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': new_user.fingerprint,
+            'signature': str(sig),
+            'type': 'USER'
+        }
+        response = json.loads(self.handler.add_user(payload, is_admin=True)[0])
+        self.assertEqual(response['error'], True)
+
+    def test_remove_user_valid_admin(self):
+        admin = self.admin_users[0]
+        new_user = self.new_users[0]
+        sig = self.admin_gpg.sign(
+            new_user.fingerprint.encode('UTF-8'),
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': new_user.fingerprint,
+            'signature': str(sig),
+            'type': 'USER'
+        }
+        response = json.loads(self.handler.add_user(payload)[0])
+        self.assertEqual(response['msg'], 'success')
+        response = json.loads(self.handler.remove_user(payload)[0])
+        self.assertEqual(response['msg'], 'success')
+
+    def test_remove_user_invalid_admin(self):
+        admin = self.users[0]
+        new_user = self.new_users[0]
+        sig = self.admin_gpg.sign(
+            new_user.fingerprint.encode('UTF-8'),
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': new_user.fingerprint,
+            'signature': str(sig),
+            'type': 'USER'
+        }
+        response = json.loads(self.handler.add_user(payload, is_admin=True)[0])
+        self.assertEqual(response['error'], True)
+
+    def test_remove_admin_valid_admin(self):
+        admin = self.admin_users[0]
+        sig = self.admin_gpg.sign(
+            'C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD'.encode('UTF-8'),
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': 'C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD',
+            'signature': str(sig),
+            'type': 'ADMIN'
+        }
+        response = json.loads(self.handler.add_user(payload)[0])
+        self.assertEqual(response['msg'], 'success')
+        response = json.loads(self.handler.remove_user(payload)[0])
+        self.assertEqual(response['msg'], 'success')
+
+    def test_remove_admin_invalid_admin(self):
+        user = self.users[0]
+        new_user = self.new_users[0]
+        sig = self.user_gpg.sign(
+            new_user.fingerprint.encode('UTF-8'),
+            keyid=user.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=user.password
+        )
+        payload = {
+            'fingerprint': new_user.fingerprint,
+            'signature': str(sig),
+            'type': 'ADMIN'
+        }
+        response = json.loads(self.handler.add_user(payload, is_admin=True)[0])
         self.assertEqual(response['error'], True)

@@ -1,6 +1,8 @@
+import json
 import random
 import re
 import unittest
+import uuid
 
 from configparser import ConfigParser
 from cryptography import x509
@@ -102,3 +104,25 @@ def gen_passwd():
     if re.search('[0-9]+', pw) is None:
         pw = gen_passwd()
     return pw
+
+
+def error_response(msg, status_code=501):
+    return json.dumps({
+        'error': True,
+        'msg': msg
+    }), status_code
+
+
+def write_sig_to_file(sig_str):
+    """
+    Writes a signature to a file. Returns the path to the file
+
+    Args:
+        sig_str - Signature String
+
+    Return: path to signature file
+    """
+    sig_path = '/tmp/{}.sig'.format(uuid.uuid4())
+    with open(sig_path, 'wb') as f:
+        f.write(sig_str.encode('utf-8'))
+    return sig_path
