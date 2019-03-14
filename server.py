@@ -13,7 +13,7 @@ from handler import Handler
 from logger import logger
 
 __author__ = 'Danny Grove <danny@drgrovellc.com>'
-VERSION = 'version 0.5'
+VERSION = 'version 0.6'
 
 app = Flask(__name__)
 handler = Handler()
