@@ -39,7 +39,7 @@ def create_handler():
         return handler.add_user(body, is_admin=True)
 
 
-@app.route('/', methods['DELETE'])
+@app.route('/', methods=['DELETE'])
 def delete_handler():
     body = request.get_json()
     if body['type'] == "CERTIFICATE":

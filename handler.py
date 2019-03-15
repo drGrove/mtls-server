@@ -79,7 +79,7 @@ class Handler:
             )
             os.remove(sig_path)
         except CertProcessorUntrustedSignatureError as e:
-            logger.info('Unauthorized: {}'.format(e.msg))
+            logger.info('Unauthorized: {}'.format(e))
             return error_response('Unauthorized', 403)
         except CertProcessorInvalidSignatureError:
             logger.info('Invalid signature in CSR.')
