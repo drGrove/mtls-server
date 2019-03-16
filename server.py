@@ -18,15 +18,14 @@ __author__ = 'Danny Grove <danny@drgrovellc.com>'
 
 app = None
 handler = None
-version = None
-
-with open('VERSION', 'r') as f:
-    version = f.read()
 
 
 def create_app(config=None):
     app = Flask(__name__)
     handler = Handler(config)
+
+    with open('VERSION', 'r') as f:
+        version = str(f.read())
 
     # This will generate a CA Certificate and Key if one does not exist
     try:
@@ -71,11 +70,11 @@ def create_app(config=None):
         crl = handler.cert_processor.get_crl()
         return crl.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
 
-    @app.route('/verion', methods=['GET'])
+    @app.route('/version', methods=['GET'])
     def get_version():
         return json.dumps({
             'version': version
-        })
+        }), 200
 
     return app
 

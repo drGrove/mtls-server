@@ -225,8 +225,9 @@ class TestServer(unittest.TestCase):
     def test_get_version(self):
         with open('VERSION', 'r') as v:
             version = v.read()
-        response = self.app.get('/')
+        response = self.app.get('/version')
         res = json.loads(response.data)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(res['version'], version)
 
 
