@@ -222,6 +222,13 @@ class TestServer(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(res['error'], True)
 
+    def test_get_version(self):
+        with open('VERSION', 'r') as v:
+            version = v.read()
+        response = self.app.get('/')
+        res = json.loads(response.data)
+        self.assertEqual(res['version'], version)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,10 +15,13 @@ from logger import logger
 from utils import get_config_from_file
 
 __author__ = 'Danny Grove <danny@drgrovellc.com>'
-VERSION = 'version 0.6'
 
 app = None
 handler = None
+version = None
+
+with open('VERSION', 'r') as f:
+    version = f.read()
 
 
 def create_app(config=None):
@@ -67,6 +70,12 @@ def create_app(config=None):
     def get_crl():
         crl = handler.cert_processor.get_crl()
         return crl.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
+
+    @app.route('/verion', methods=['GET'])
+    def get_version():
+        return json.dumps({
+            'version': version
+        })
 
     return app
 
