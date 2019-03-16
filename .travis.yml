@@ -26,4 +26,4 @@ script:
   - make test coverage
 
 after_success:
-  coveralls
+  - make coveralls
