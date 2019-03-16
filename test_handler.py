@@ -258,7 +258,7 @@ class TestHandler(unittest.TestCase):
                 ).decode('utf-8'),
                 'signature': str(sig),
                 'lifetime': 60,
-                'type': 'CREATE_CERTIFICATE'
+                'type': 'CERTIFICATE'
             }
             response = json.loads(self.handler.create_cert(payload)[0])
             self.assertIn("-----BEGIN CERTIFICATE-----", response['cert'])
@@ -287,7 +287,7 @@ class TestHandler(unittest.TestCase):
             ).decode('utf-8'),
             'signature': str(sig),
             'lifetime': 60,
-            'type': 'CREATE_CERTIFICATE'
+            'type': 'CERTIFICATE'
         }
         response = json.loads(self.handler.create_cert(payload)[0])
         self.assertEqual(response['error'], True)
@@ -438,3 +438,7 @@ class TestHandler(unittest.TestCase):
         }
         response = json.loads(self.handler.add_user(payload, is_admin=True)[0])
         self.assertEqual(response['error'], True)
+
+
+if __name__ == "__main__":
+    unittest.main()

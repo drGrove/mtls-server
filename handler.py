@@ -16,19 +16,13 @@ from cert_processor import CertProcessorUntrustedSignatureError
 from logger import logger
 from utils import error_response
 from utils import write_sig_to_file
+from utils import get_config_from_file
 
 
 class Handler:
     def __init__(self, config=None):
         if config is None:
-            config = ConfigParser()
-            config_path = os.path.abspath(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    'config.ini'
-                )
-            )
-            config.read(config_path)
+            config = get_config_from_file('config.ini')
         self.config = config
         self.cert_processor = CertProcessor(config)
 
@@ -79,7 +73,7 @@ class Handler:
             )
             os.remove(sig_path)
         except CertProcessorUntrustedSignatureError as e:
-            logger.info('Unauthorized: {}'.format(e.msg))
+            logger.info('Unauthorized: {}'.format(e))
             return error_response('Unauthorized', 403)
         except CertProcessorInvalidSignatureError:
             logger.info('Invalid signature in CSR.')

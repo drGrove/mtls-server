@@ -1,6 +1,5 @@
 language: python
 python:
-  - "3.5"
   - "3.6"
   - "3.7-dev"
 
@@ -24,4 +23,7 @@ before_script:
   - make create-ca
 
 script:
-  - make test
+  - make test coverage
+
+after_success:
+  coveralls
