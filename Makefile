@@ -35,6 +35,9 @@ lint:
 coverage:
 	@$(PIP_ENV)/bin/coverage report -m
 
+coveralls:
+	@$(PIP_ENV)/bin/coveralls
+
 test:
 ifeq "${CI}" ""
 	$(MAKE) run-postgres
