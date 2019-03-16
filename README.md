@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/drGrove/mtls-server.svg?branch=master)](https://travis-ci.org/drGrove/mtls-server)
 [![Known Vulnerabilities](https://snyk.io/test/github/drGrove/mtls-server/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/drGrove/mtls-server?targetFile=requirements.txt)
+[![Coverage Status](https://coveralls.io/repos/github/drGrove/mtls-server/badge.svg?branch=master)](https://coveralls.io/github/drGrove/mtls-server?branch=master)
 
 A mutual TLS (mTLS) system for authenticating users to services that need to be on the internet, but should only be
 accessible to users that specifically need it. This should be used as a initial security measure on top of normal login
