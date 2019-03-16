@@ -6,3 +6,4 @@ secrets
 ~*
 *.sw[o|p]
 *.db
+*.coverage

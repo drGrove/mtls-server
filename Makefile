@@ -33,14 +33,14 @@ lint:
 	@$(PIP_ENV)/bin/pycodestyle --first *.py
 
 coverage:
-	@$(PIP_ENV)/bin/python3 -m coverage report --include=./*.py
+	@$(PIP_ENV)/bin/coverage report -m
 
 test:
 ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	@$(PIP_ENV)/bin/python3 -m unittest -v
+	@$(PIP_ENV)/bin/coverage run -m unittest -v
 ifeq "${CI}" ""
 		@docker stop mtls-postgres
 endif
@@ -50,7 +50,7 @@ ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	@$(PIP_ENV)/bin/python3 -m unittest $(TEST) -v
+	@$(PIP_ENV)/bin/coverage run -m unittest $(TEST) -v
 ifeq "${CI}" ""
 		@docker stop mtls-postgres
 endif
@@ -80,9 +80,9 @@ run-prod: build-image run-postgres
 		--name mtls-server \
 		--rm \
 		-d \
-		-v $(PWD)/secrets/gnupg:/srv/secrets/gnupg \
-		-v $(PWD)/secrets/certs/authority:/srv/secrets/certs/authority \
-		-v $(PWD)/config.ini:/srv/config.ini \
+		-v $(PWD)/secrets/gnupg:/home/mtls/secrets/gnupg \
+		-v $(PWD)/secrets/certs/authority:/home/mtls/secrets/certs/authority \
+		-v $(PWD)/config.ini:/home/mtls/config.ini \
 		$(DOCKER_REGISTRY)mtls-server:$(TAG)
 	@docker run \
 		--name mtls-nginx \

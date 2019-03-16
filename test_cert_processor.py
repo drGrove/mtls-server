@@ -403,3 +403,7 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
 
     def test_revoke_cert(self):
         self.revoke_cert()
+
+
+if __name__ == "__main__":
+    unittest.main()

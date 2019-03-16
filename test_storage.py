@@ -259,3 +259,7 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         self.engine.revoke_cert(cert.serial_number)
         cur.execute(query, (str(cert.serial_number),))
         self.assertEqual(cur.fetchone()[0], True)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -24,4 +24,4 @@ before_script:
   - make create-ca
 
 script:
-  - make test
+  - make test coverage

@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import re
 import unittest
@@ -126,3 +127,22 @@ def write_sig_to_file(sig_str):
     with open(sig_path, 'wb') as f:
         f.write(sig_str.encode('utf-8'))
     return sig_path
+
+
+def get_abs_path(path):
+    """Gets the absolute path given a path."""
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    if not os.path.isabs(path):
+        return os.path.abspath(
+            os.path.join(
+                dir_path,
+                path
+            )
+        )
+
+
+def get_config_from_file(file_name_or_path):
+    config = ConfigParser()
+    config_path = get_abs_path(file_name_or_path)
+    config.read(config_path)
+    return config
