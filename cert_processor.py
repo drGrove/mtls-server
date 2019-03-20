@@ -254,7 +254,7 @@ class CertProcessor:
         )
         common_name = common_name[0].value
         old_cert = x509.load_pem_x509_certificate(
-            bytes(self.storage.get_cert(common_name), 'UTF-8'),
+            bytes(str(self.storage.get_cert(common_name)), 'UTF-8'),
             default_backend()
         )
         if old_cert.public_key != csr.public_key():
