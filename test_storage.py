@@ -15,47 +15,87 @@ import storage
 logging.disable(logging.CRITICAL)
 
 
-def generate_fake_cert(common_name, serial_number=None, expired=False):
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
+def generate_fake_cert(
+        common_name,
+        serial_number=None,
+        expired=False,
+        pkey=None
+):
+    public_key = pkey.public_key()
+
+    today = datetime.datetime.today()
+    one_day = datetime.timedelta(1, 0, 0)
+
+    builder = x509.CertificateBuilder()
+
+    builder = builder.subject_name(x509.Name([
+        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+    ]))
+
+    builder = builder.issuer_name(x509.Name([
+        x509.NameAttribute(NameOID.COMMON_NAME, 'Fake Issuer'),
+    ]))
+
+    if serial_number is not None:
+        builder = builder.serial_number(serial_number)
+    else:
+        builder = builder.serial_number(x509.random_serial_number())
+
+    if expired:
+        builder = builder.not_valid_before(today - 3 * one_day)
+        builder = builder.not_valid_after(today - one_day)
+    else:
+        builder = builder.not_valid_before(today - one_day)
+        builder = builder.not_valid_after(today + one_day)
+
+    builder = builder.public_key(public_key)
+
+    return builder.sign(
+        private_key=pkey,
+        algorithm=hashes.SHA256(),
+        backend=default_backend(),
+    )
+
+
+def update_cert(old_cert, pkey):
+    common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+    common_name = common_name[0].value
+    old_cert = x509.load_pem_x509_certificate(
+        bytes(self.storage.get_cert(common_name), 'UTF-8'),
+        default_backend()
+    )
+    if old_cert.public_key != csr.public_key():
+        raise CertProcessorMismatchedPublicKeyError
+    now = datetime.datetime.utcnow()
+    lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
+    alts = []
+    for alt in self.config.get('ca', 'alternate_name').split(','):
+        alts.append(x509.DNSName(u'{}'.format(alt)))
+
+    cert = x509.CertificateBuilder().subject_name(
+        old_cert.subject_name
+    ).issuer_name(
+        ca_cert.subject
+    ).public_key(
+        pkey.public_key()
+    ).serial_number(
+        old_cert.serial_number
+    ).not_valid_before(
+        old_cert.not_valid_before
+    ).not_valid_after(
+        lifetime_delta
+    )
+    print(old_cert.extensions)
+    if len(alts) > 0:
+        cert = cert.add_extension(
+            x509.SubjectAlternativeName(alts), critical=False
         )
-
-        public_key = private_key.public_key()
-
-        today = datetime.datetime.today()
-        one_day = datetime.timedelta(1, 0, 0)
-
-        builder = x509.CertificateBuilder()
-
-        builder = builder.subject_name(x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-        ]))
-
-        builder = builder.issuer_name(x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, 'Fake Issuer'),
-        ]))
-
-        if serial_number is not None:
-            builder = builder.serial_number(serial_number)
-        else:
-            builder = builder.serial_number(x509.random_serial_number())
-
-        if expired:
-            builder = builder.not_valid_before(today - 3 * one_day)
-            builder = builder.not_valid_after(today - one_day)
-        else:
-            builder = builder.not_valid_before(today - one_day)
-            builder = builder.not_valid_after(today + one_day)
-
-        builder = builder.public_key(public_key)
-
-        return builder.sign(
-            private_key=private_key,
-            algorithm=hashes.SHA256(),
-            backend=default_backend(),
-        )
+    cert = cert.sign(
+        private_key=pkey,
+        algorithm=hashes.SHA256(),
+        backend=default_backend()
+    )
+    self.update_cert(cert, common_name=common_name)
 
 
 class TestSQLiteStorageEngine(unittest.TestCase):
@@ -72,6 +112,11 @@ class TestSQLiteStorageEngine(unittest.TestCase):
         cur.execute('DROP TABLE IF EXISTS certs')
         self.engine.conn.commit()
         self.engine.init_db()
+        self.pkey = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
 
     def tearDown(self):
         self.engine.close()
@@ -157,6 +202,17 @@ class TestSQLiteStorageEngine(unittest.TestCase):
 
         cur.execute(query, [str(cert.serial_number)])
         self.assertEqual(cur.fetchone()[0], 1)
+
+    def test_update_cert(self):
+        """
+        Verify that a certificate can be updated.
+        """
+        old_cert = generate_fake_cert('user@host', serial_number=123)
+        self.engine.save_cert(old_cert, 'ABCDEFGH', pkey=self.pkey)
+        cert = update_cert(old_cert, pkey=self.pkey)
+        self.engine.update_cert(serial_number=cert.serial_number, cert=cert)
+        self.assertEqual(old_cert.serial_number, cert.serial_number)
+        self.assertEqual(old_cert.not_valid_before, cert.not_valid_before)
 
 
 class TestPostgresqlStorageEngine(unittest.TestCase):
@@ -259,6 +315,17 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         self.engine.revoke_cert(cert.serial_number)
         cur.execute(query, (str(cert.serial_number),))
         self.assertEqual(cur.fetchone()[0], True)
+
+    def test_update_cert(self):
+        """
+        Verify that a certificate can be updated.
+        """
+        old_cert = generate_fake_cert('user@host', serial_number=123)
+        self.engine.save_cert(old_cert, 'ABCDEFGH', pkey=self.pkey)
+        cert = update_cert(old_cert, pkey=self.pkey)
+        self.engine.update_cert(serial_number=cert.serial_number, cert=cert)
+        self.assertEqual(old_cert.serial_number, cert.serial_number)
+        self.assertEqual(old_cert.not_valid_before, cert.not_valid_before)
 
 
 if __name__ == "__main__":

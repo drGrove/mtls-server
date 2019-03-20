@@ -12,6 +12,8 @@ import gnupg
 
 from logger import logger
 from storage import StorageEngine
+from storage import StorageEngineCertificateConflict
+from storage import UpdateCertException
 
 
 class CertProcessorKeyNotFoundError(Exception):
@@ -23,6 +25,10 @@ class CertProcessorInvalidSignatureError(Exception):
 
 
 class CertProcessorUntrustedSignatureError(Exception):
+    pass
+
+
+class CertProcessorMismatchedPublicKeyError(Exception):
     pass
 
 
@@ -236,8 +242,53 @@ class CertProcessor:
             algorithm=hashes.SHA256(),
             backend=default_backend()
         )
-        self.storage.save_cert(cert, fingerprint)
+        try:
+            self.storage.save_cert(cert, fingerprint)
+        except StorageEngineCertificateConflict:
+            cert = self.update_cert()
         return cert.public_bytes(serialization.Encoding.PEM)
+
+    def update_cert(self, cert):
+        common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+        common_name = common_name[0].value
+        old_cert = x509.load_pem_x509_certificate(
+            bytes(self.storage.get_cert(common_name), 'UTF-8'),
+            default_backend()
+        )
+        if old_cert.public_key != csr.public_key():
+            raise CertProcessorMismatchedPublicKeyError
+        ca_pkey = self.get_ca_key()
+        ca_cert = self.get_ca_cert(ca_pkey)
+        now = datetime.datetime.utcnow()
+        lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
+        alts = []
+        for alt in self.config.get('ca', 'alternate_name').split(','):
+            alts.append(x509.DNSName(u'{}'.format(alt)))
+
+        cert = x509.CertificateBuilder().subject_name(
+            old_cert.subject_name
+        ).issuer_name(
+            ca_cert.subject
+        ).public_key(
+            csr.public_key()
+        ).serial_number(
+            old_cert.serial_number
+        ).not_valid_before(
+            old_cert.not_valid_before
+        ).not_valid_after(
+            lifetime_delta
+        )
+        print(old_cert.extensions)
+        if len(alts) > 0:
+            cert = cert.add_extension(
+                x509.SubjectAlternativeName(alts), critical=False
+            )
+        cert = cert.sign(
+            private_key=ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend()
+        )
+        self.update_cert(cert, common_name=common_name)
 
     def get_crl(self):
         ca_pkey = self.get_ca_key()

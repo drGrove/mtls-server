@@ -21,6 +21,12 @@ class StorageEngineMissing(Exception):
     """
 
 
+class UpdateCertException(Exception):
+    """
+    Raise when attempting to update a cert and parameters are missing.
+    """
+
+
 class SqlStorageEngine:
     """
     A Base SQL Storage Engine implementation.
@@ -88,6 +94,25 @@ class SQLiteStorageEngine(SqlStorageEngine):
         ))
         cur.execute('UPDATE certs SET revoked=1 WHERE serial_number=?',
                     [str(serial_number)])
+        self.conn.commit()
+
+    def update_cert(self, serial_number=None, cert=None):
+        if not serial_number or not cert:
+            logger.error('A serial number and cert are required to update.')
+            raise UpdateCertException
+        cur = self.conn.cursor()
+        logger.info('Updating certificate {serial_number}'.format(
+            serial_number=serial_number
+        ))
+        cur.execute(
+            'UPDATE certs SET cert=? AND not_valid_after=? WHERE ' +
+            'serial_number=?',
+            [
+                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
+                cert.not_valid_after,
+                str(serial_number)
+            ]
+        )
         self.conn.commit()
 
     def get_cert(self, serial_number=None, common_name=None, fingerprint=None):
@@ -252,6 +277,23 @@ class PostgresqlStorageEngine(SqlStorageEngine):
         cur.execute(
             "UPDATE certs SET revoked=true WHERE serial_number = %s",
             (str(serial_number),)
+        )
+        self.conn.commit()
+
+    def update_cert(self, serial_number=None, cert=None):
+        if not serial_number or not cert:
+            logger.error('A serial number and cert are required to update.')
+            raise UpdateCertException
+        cur = self.conn.cursor()
+        logger.info('Updating certificate {serial_number}'.format(
+            serial_number=serial_number
+        ))
+        cur.execute(
+            'UPDATE certs SET cert= %s WHERE serial_number = %s',
+            [
+                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
+                str(serial_number)
+            ]
         )
         self.conn.commit()
 

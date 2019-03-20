@@ -96,6 +96,11 @@ class Handler:
                 'Key missing. Service not properly initialized'
             )
             return error_response('Internal Error')
+        except CertProcessorMismatchedPublicKeyError:
+            logger.error(
+                'CSR Public Key does not match found certificate.'
+            )
+            return error_response('Internal Error')
 
     def revoke_cert(self, body):
         """
