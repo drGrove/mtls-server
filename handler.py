@@ -10,8 +10,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 from cert_processor import CertProcessor
-from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorInvalidSignatureError
+from cert_processor import CertProcessorKeyNotFoundError
+from cert_processor import CertProcessorMismatchedPublicKeyError
 from cert_processor import CertProcessorUntrustedSignatureError
 from logger import logger
 from utils import error_response

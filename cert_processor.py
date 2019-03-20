@@ -245,11 +245,13 @@ class CertProcessor:
         try:
             self.storage.save_cert(cert, fingerprint)
         except StorageEngineCertificateConflict:
-            cert = self.update_cert()
+            cert = self.update_cert(csr)
         return cert.public_bytes(serialization.Encoding.PEM)
 
-    def update_cert(self, cert):
-        common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+    def update_cert(self, csr):
+        common_name = csr.subject.get_attributes_for_oid(
+            NameOID.COMMON_NAME
+        )
         common_name = common_name[0].value
         old_cert = x509.load_pem_x509_certificate(
             bytes(self.storage.get_cert(common_name), 'UTF-8'),
