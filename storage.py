@@ -60,7 +60,7 @@ class SQLiteStorageEngine(SqlStorageEngine):
         self.conn.commit()
 
     def save_cert(self, cert, fingerprint):
-        if self.__conflicting_cert_exists(cert):
+        if self.__conflicting_cert_exists(cert, fingerprint):
             raise StorageEngineCertificateConflict
 
         common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
@@ -104,10 +104,15 @@ class SQLiteStorageEngine(SqlStorageEngine):
         logger.info('Updating certificate {serial_number}'.format(
             serial_number=serial_number
         ))
-        cur.execute(
-            'UPDATE certs SET cert=? AND not_valid_after=? WHERE ' +
-            'serial_number=?',
-            [
+        cur.execute("""
+            UPDATE
+                certs
+            SET
+                cert=?,
+                not_valid_after=?
+            WHERE
+                serial_number=?
+            """, [
                 cert.public_bytes(Encoding.PEM).decode('UTF-8'),
                 cert.not_valid_after,
                 str(serial_number)
@@ -115,33 +120,35 @@ class SQLiteStorageEngine(SqlStorageEngine):
         )
         self.conn.commit()
 
-    def get_cert(self, serial_number=None, common_name=None, fingerprint=None):
+    def get_cert(
+        self,
+        serial_number=None,
+        common_name=None,
+        fingerprint=None,
+        show_revoked=False
+    ):
         cur = self.conn.cursor()
-        query = None
+        key = None
         value = None
+        query = "SELECT cert FROM certs WHERE"
         if serial_number is not None:
-            query = 'serial_number'
+            query += " serial_number=?"
             value = str(serial_number)
         elif fingerprint is not None:
-            query = 'fingerprint'
+            query += " fingerprint=?"
             value = str(fingerprint)
         elif common_name is not None:
-            query = 'common_name'
+            query += " common_name=?"
             value = str(common_name)
         else:
             return None
 
-        cur.execute("""
-            SELECT
-                cert
-            FROM
-                certs
-            WHERE
-                ? = ?
-            """, (
-                query,
-                str(value)
-        ))
+        if show_revoked:
+            query += " AND revoked=1"
+        else:
+            query += " AND revoked=0"
+
+        cur.execute(query, [str(value)])
         rows = cur.fetchall()
         certs = []
         for row in rows:
@@ -161,7 +168,7 @@ class SQLiteStorageEngine(SqlStorageEngine):
             certs.append(row[0])
         return certs
 
-    def __conflicting_cert_exists(self, cert):
+    def __conflicting_cert_exists(self, cert, fingerprint):
         common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
         common_name = common_name[0].value
 
@@ -171,7 +178,6 @@ class SQLiteStorageEngine(SqlStorageEngine):
             WHERE serial_number=?
             OR (
                 common_name=?
-                AND not_valid_after>=datetime('now')
                 AND revoked=0
             )
             """, [str(cert.serial_number), common_name])
@@ -209,7 +215,7 @@ class PostgresqlStorageEngine(SqlStorageEngine):
         self.conn.commit()
 
     def save_cert(self, cert, fingerprint):
-        if self.__conflicting_cert_exists(cert):
+        if self.__conflicting_cert_exists(cert, fingerprint):
             raise StorageEngineCertificateConflict
 
         common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
@@ -236,7 +242,13 @@ class PostgresqlStorageEngine(SqlStorageEngine):
             ))
         self.conn.commit()
 
-    def get_cert(self, serial_number=None, common_name=None, fingerprint=None):
+    def get_cert(
+        self,
+        serial_number=None,
+        common_name=None,
+        fingerprint=None,
+        show_revoked=False
+    ):
         cur = self.conn.cursor()
         query = None
         value = None
@@ -259,9 +271,12 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 certs
             WHERE
                 %s = %s
+            AND
+                revoked = %s
             """, (
                 query,
-                str(value)
+                str(value),
+                show_revoked
         ))
         rows = cur.fetchall()
         certs = []
@@ -289,7 +304,7 @@ class PostgresqlStorageEngine(SqlStorageEngine):
             serial_number=serial_number
         ))
         cur.execute(
-            'UPDATE certs SET cert= %s WHERE serial_number = %s',
+            'UPDATE certs SET cert = %s WHERE serial_number = %s',
             [
                 cert.public_bytes(Encoding.PEM).decode('UTF-8'),
                 str(serial_number)
@@ -312,7 +327,7 @@ class PostgresqlStorageEngine(SqlStorageEngine):
             certs.append(row[0])
         return certs
 
-    def __conflicting_cert_exists(self, cert):
+    def __conflicting_cert_exists(self, cert, fingerprint):
         common_name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
         common_name = common_name[0].value
 
@@ -322,7 +337,7 @@ class PostgresqlStorageEngine(SqlStorageEngine):
             WHERE serial_number = %s
             OR (
                 common_name = %s
-                AND not_valid_after>=NOW()
+                AND fingerprint = %s
                 AND revoked=false
             )
             """, (str(cert.serial_number), common_name))

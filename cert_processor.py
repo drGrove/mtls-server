@@ -245,19 +245,31 @@ class CertProcessor:
         try:
             self.storage.save_cert(cert, fingerprint)
         except StorageEngineCertificateConflict:
-            cert = self.update_cert(csr)
+            cert = self.update_cert(csr, lifetime)
         return cert.public_bytes(serialization.Encoding.PEM)
 
-    def update_cert(self, csr):
+    def update_cert(self, csr, lifetime):
         common_name = csr.subject.get_attributes_for_oid(
             NameOID.COMMON_NAME
         )
         common_name = common_name[0].value
-        old_cert = x509.load_pem_x509_certificate(
-            bytes(str(self.storage.get_cert(common_name)), 'UTF-8'),
-            default_backend()
+        bcert = bytes(
+            str(self.storage.get_cert(common_name=common_name)[0]),
+            'UTF-8'
         )
-        if old_cert.public_key != csr.public_key():
+        old_cert = x509.load_pem_x509_certificate(
+            bcert,
+            backend=default_backend()
+        )
+        old_cert_pub = old_cert.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('UTF-8')
+        csr_pub = csr.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('UTF-8')
+        if old_cert_pub != csr_pub:
             raise CertProcessorMismatchedPublicKeyError
         ca_pkey = self.get_ca_key()
         ca_cert = self.get_ca_cert(ca_pkey)
@@ -268,7 +280,7 @@ class CertProcessor:
             alts.append(x509.DNSName(u'{}'.format(alt)))
 
         cert = x509.CertificateBuilder().subject_name(
-            old_cert.subject_name
+            old_cert.subject
         ).issuer_name(
             ca_cert.subject
         ).public_key(
@@ -280,7 +292,6 @@ class CertProcessor:
         ).not_valid_after(
             lifetime_delta
         )
-        print(old_cert.extensions)
         if len(alts) > 0:
             cert = cert.add_extension(
                 x509.SubjectAlternativeName(alts), critical=False
@@ -290,7 +301,8 @@ class CertProcessor:
             algorithm=hashes.SHA256(),
             backend=default_backend()
         )
-        self.update_cert(cert, common_name=common_name)
+        self.storage.update_cert(cert=cert, serial_number=cert.serial_number)
+        return cert
 
     def get_crl(self):
         ca_pkey = self.get_ca_key()
@@ -315,7 +327,7 @@ class CertProcessor:
                 ).revocation_date(
                     datetime.datetime.utcnow()
                 ).build(
-                    default_backend()
+                    backend=default_backend()
                 )
             )
         # Sign the CRL
