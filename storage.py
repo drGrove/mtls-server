@@ -250,34 +250,23 @@ class PostgresqlStorageEngine(SqlStorageEngine):
         show_revoked=False
     ):
         cur = self.conn.cursor()
-        query = None
         value = None
+        query = 'SELECT cert FROM certs WHERE'
         if serial_number is not None:
-            query = 'serial_number'
+            query += ' serial_number = %s'
             value = str(serial_number)
         elif fingerprint is not None:
-            query = 'fingerprint'
-            value = str(fingerprint)
+            query += ' fingerprint = %s'
+            value = fingerprint
         elif common_name is not None:
-            query = 'common_name'
-            value = str(common_name)
+            query += ' common_name = %s'
+            value = common_name
         else:
             return None
 
-        cur.execute("""
-            SELECT
-                cert
-            FROM
-                certs
-            WHERE
-                %s = %s
-            AND
-                revoked = %s
-            """, (
-                query,
-                str(value),
-                show_revoked
-        ))
+        query += ' AND revoked = %s'
+
+        cur.execute(query, (value, show_revoked))
         rows = cur.fetchall()
         certs = []
         for row in rows:
@@ -303,12 +292,19 @@ class PostgresqlStorageEngine(SqlStorageEngine):
         logger.info('Updating certificate {serial_number}'.format(
             serial_number=serial_number
         ))
-        cur.execute(
-            'UPDATE certs SET cert = %s WHERE serial_number = %s',
-            [
+        cur.execute("""
+            UPDATE
+                certs
+            SET
+                cert = %s,
+                not_valid_after = %s
+            WHERE
+                serial_number = %s
+            """, (
                 cert.public_bytes(Encoding.PEM).decode('UTF-8'),
+                cert.not_valid_after,
                 str(serial_number)
-            ]
+            )
         )
         self.conn.commit()
 
@@ -340,7 +336,7 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 AND fingerprint = %s
                 AND revoked=false
             )
-            """, (str(cert.serial_number), common_name))
+            """, (str(cert.serial_number), common_name, fingerprint))
         conflicts = cur.fetchone()[0]
         return conflicts > 0
 
