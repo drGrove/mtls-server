@@ -10,8 +10,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 from cert_processor import CertProcessor
-from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorInvalidSignatureError
+from cert_processor import CertProcessorKeyNotFoundError
+from cert_processor import CertProcessorMismatchedPublicKeyError
 from cert_processor import CertProcessorUntrustedSignatureError
 from logger import logger
 from utils import error_response
@@ -94,6 +95,11 @@ class Handler:
         except CertProcessorKeyNotFoundError:
             logger.critical(
                 'Key missing. Service not properly initialized'
+            )
+            return error_response('Internal Error')
+        except CertProcessorMismatchedPublicKeyError:
+            logger.error(
+                'CSR Public Key does not match found certificate.'
             )
             return error_response('Internal Error')
 
