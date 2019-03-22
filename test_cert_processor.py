@@ -477,8 +477,14 @@ class TestCertProcessorMissingStorage(TestCertProcessorBase):
 class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
     def setUp(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.USER_GNUPGHOME = tempfile.TemporaryDirectory(prefix=dir_path)
-        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory(prefix=dir_path)
+        self.USER_GNUPGHOME = tempfile.TemporaryDirectory(
+            prefix=dir_path + '/secrets/'
+        )
+        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory(
+            prefix=dir_path + '/secrets/'
+        )
+        relative_user = '.' + self.USER_GNUPGHOME.name.split(dir_path)[1]
+        relative_admin = '.' + self.ADMIN_GNUPGHOME.name.split(dir_path)[1]
         config = ConfigParser()
         config.read_string(
             """
@@ -498,10 +504,11 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
             [storage.sqlite3]
             db_path=:memory:
             """.format(
-                user_gnupghome=self.USER_GNUPGHOME.name.split(dir_path)[1],
-                admin_gnupghome=self.ADMIN_GNUPGHOME.name.split(dir_path)[1],
+                user_gnupghome=relative_user,
+                admin_gnupghome=relative_admin,
             )
         )
+        print(config.get('gnupg', 'user'))
         self.common_name = 'user@host'
         self.key = generate_key()
         self.engine = storage.SQLiteStorageEngine(config)
