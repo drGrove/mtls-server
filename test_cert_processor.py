@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import tempfile
+import time
 import unittest
 
 from configparser import ConfigParser
@@ -188,6 +189,37 @@ class TestCertProcessorBase(unittest.TestCase):
         )
         self.assertEqual(cert.serial_number, rev_cert.serial_number)
 
+    def update_cert(self):
+        user = self.users[0]
+        csr = user.gen_csr()
+        sig = self.user_gpg.sign(
+            csr.public_bytes(serialization.Encoding.PEM),
+            keyid=user.fingerprint,
+            detach=True,
+            clearsign=True,
+            passphrase=user.password
+        )
+        bcert = self.cert_processor.generate_cert(
+            csr,
+            60,
+            user.fingerprint
+        )
+        old_cert = x509.load_pem_x509_certificate(
+            bcert,
+            backend=default_backend()
+        )
+        time.sleep(65)
+        new_b_cert = self.cert_processor.generate_cert(
+            csr,
+            60,
+            user.fingerprint
+        )
+        new_cert = x509.load_pem_x509_certificate(
+            bcert,
+            backend=default_backend()
+        )
+        self.assertEqual(old_cert.serial_number, new_cert.serial_number)
+
 
 class TestCertProcessorSQLite(TestCertProcessorBase):
     def setUp(self):
@@ -290,6 +322,9 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
 
     def test_revoke_cert(self):
         self.revoke_cert()
+
+    def test_update_cert(self):
+        self.update_cert()
 
 
 class TestCertProcessorPostgres(TestCertProcessorBase):
@@ -403,6 +438,147 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
 
     def test_revoke_cert(self):
         self.revoke_cert()
+
+    def test_update_cert(self):
+        self.update_cert()
+
+
+class TestCertProcessorMissingStorage(TestCertProcessorBase):
+    def setUp(self):
+        self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.config = ConfigParser()
+        self.config.read_string(
+            """
+            [ca]
+            key = secrets/certs/authority/RootCA.key
+            cert = secrets/certs/authority/RootCA.pem
+            issuer = My Company Name
+            alternate_name = *.myname.com
+
+            [gnupg]
+            user={user_gnupghome}
+            admin={admin_gnupghome}
+            """.format(
+                user_gnupghome=self.USER_GNUPGHOME.name,
+                admin_gnupghome=self.ADMIN_GNUPGHOME.name
+            )
+        )
+
+    def tearDown(self):
+        self.USER_GNUPGHOME.cleanup()
+        self.ADMIN_GNUPGHOME.cleanup()
+
+    def test_missing_storage(self):
+        with self.assertRaises(storage.StorageEngineMissing):
+            self.cert_processor = CertProcessor(self.config)
+
+
+class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
+    def setUp(self):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.USER_GNUPGHOME = tempfile.TemporaryDirectory(prefix=dir_path)
+        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory(prefix=dir_path)
+        config = ConfigParser()
+        config.read_string(
+            """
+            [ca]
+            key = secrets/certs/authority/RootCA.key
+            cert = secrets/certs/authority/RootCA.pem
+            issuer = My Company Name
+            alternate_name = *.myname.com
+
+            [gnupg]
+            user={user_gnupghome}
+            admin={admin_gnupghome}
+
+            [storage]
+            engine=sqlite3
+
+            [storage.sqlite3]
+            db_path=:memory:
+            """.format(
+                user_gnupghome=self.USER_GNUPGHOME.name.split(dir_path)[1],
+                admin_gnupghome=self.ADMIN_GNUPGHOME.name.split(dir_path)[1],
+            )
+        )
+        self.common_name = 'user@host'
+        self.key = generate_key()
+        self.engine = storage.SQLiteStorageEngine(config)
+        cur = self.engine.conn.cursor()
+        cur.execute('DROP TABLE IF EXISTS certs')
+        self.engine.conn.commit()
+        self.engine.init_db()
+        self.cert_processor = CertProcessor(config)
+        self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
+        self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.users = [
+            User('user@host', gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                'user2@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            ),
+            User(
+                'user3@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.invalid_users = [
+            User(
+                'user4@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.admin_users = [
+            User(
+                'admin@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.admin_gpg
+            )
+        ]
+        for user in self.users:
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
+        for user in self.admin_users:
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
+
+    def tearDown(self):
+        self.USER_GNUPGHOME.cleanup()
+        self.ADMIN_GNUPGHOME.cleanup()
+
+    def test_get_ca_cert(self):
+        self.get_ca_cert()
+
+    def test_has_ca_key(self):
+        self.has_ca_key()
+
+    def test_verify_user(self):
+        self.verify_user()
+
+    def test_generate_cert(self):
+        self.generate_cert()
+
+    def test_get_crl(self):
+        self.get_crl()
+
+    def test_get_empty_crl(self):
+        self.get_empty_crl()
+
+    def test_revoke_cert(self):
+        self.revoke_cert()
+
+    def test_update_cert(self):
+        self.update_cert()
 
 
 if __name__ == "__main__":

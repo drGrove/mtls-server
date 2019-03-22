@@ -14,6 +14,7 @@ from logger import logger
 from storage import StorageEngine
 from storage import StorageEngineCertificateConflict
 from storage import UpdateCertException
+from storage import StorageEngineMissing
 
 
 class CertProcessorKeyNotFoundError(Exception):
@@ -54,7 +55,7 @@ class CertProcessor:
         self.user_gpg.encoding = 'utf-8'
         self.admin_gpg.encoding = 'utf-8'
         if config.get('storage', 'engine', fallback=None) is None:
-            storage.StorageEngineMissing()
+            raise StorageEngineMissing()
         self.storage = StorageEngine(config)
         self.storage.init_db()
         self.config = config
