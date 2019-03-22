@@ -508,7 +508,6 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
                 admin_gnupghome=relative_admin,
             )
         )
-        print(config.get('gnupg', 'user'))
         self.common_name = 'user@host'
         self.key = generate_key()
         self.engine = storage.SQLiteStorageEngine(config)
