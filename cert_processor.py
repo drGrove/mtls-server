@@ -67,7 +67,7 @@ class CertProcessor:
             signature,
             data
         )
-        if not verified:
+        if verified is None:
             logger.error('Invalid signature')
             raise CertProcessorInvalidSignatureError
         if (verified.trust_level is not None and
@@ -77,8 +77,7 @@ class CertProcessor:
                 .format(verified.pubkey_fingerprint)
             )
             raise CertProcessorUntrustedSignatureError
-        if not verified.valid:
-            logger.error(str(verified.trust_text))
+        if verified.valid is None or verified.valid is False:
             raise CertProcessorInvalidSignatureError
         return verified.pubkey_fingerprint
 
@@ -87,9 +86,9 @@ class CertProcessor:
             signature,
             data
         )
-        if not verified:
+        if verified is None:
             raise CertProcessorInvalidSignatureError
-        if not verified.valid:
+        if verified.valid is None or verified.valid is False:
             logger.error(
                 'Invalid signature for {}'.format(verified.fingerprint)
             )
@@ -121,6 +120,9 @@ class CertProcessor:
                 )
             )
         try:
+            ca_dir = "/".join(ca_key_path.split('/')[:-1])
+            if not os.path.isdir(ca_dir):
+                os.makedirs(ca_dir)
             with open(ca_key_path, 'rb') as key_file:
                 ca_key = serialization.load_pem_private_key(
                     key_file.read(),

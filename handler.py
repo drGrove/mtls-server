@@ -26,6 +26,29 @@ class Handler:
             config = get_config_from_file('config.ini')
         self.config = config
         self.cert_processor = CertProcessor(config)
+        self.seed()
+
+    def seed(self):
+        logger.info('Seeding Admin PGPG Trust Database')
+        seed_dir = self.config.get('mtls', 'seed_dir', fallback='/tmp/seeds')
+        if os.path.isdir(seed_dir):
+            for f in os.listdir(seed_dir):
+                f_path = os.path.join(seed_dir, f)
+                if os.path.isfile(f_path):
+                    fingerprint = f.split('.')[0]
+                    logger.info('Adding {}'.format(f))
+                    with open(f_path, 'r') as gpg_data:
+                        gpg_data = str(gpg_data.read())
+                        self.cert_processor.admin_gpg.import_keys(gpg_data)
+                        self.cert_processor.admin_gpg.trust_keys(
+                            [fingerprint],
+                            'TRUST_ULTIMATE'
+                        )
+                        self.cert_processor.user_gpg.import_keys(gpg_data)
+                        self.cert_processor.user_gpg.trust_keys(
+                            [fingerprint],
+                            'TRUST_ULTIMATE'
+                        )
 
     def create_cert(self, body):
         lifetime = int(body['lifetime'])
@@ -194,6 +217,10 @@ class Handler:
                 ),
                 body['fingerprint']
             )
+            self.cert_processor.admin_gpg.trust_keys(
+                [body['fingerprint']],
+                'TRUST_ULTIMATE'
+            )
 
         # Add the user to the user trust store
         self.cert_processor.user_gpg.recv_keys(
@@ -203,6 +230,10 @@ class Handler:
                 fallback='keyserver.ubuntu.com'
             ),
             body['fingerprint']
+        )
+        self.cert_processor.user_gpg.trust_keys(
+            [body['fingerprint']],
+            'TRUST_ULTIMATE'
         )
         return json.dumps({
             'msg': 'success'
