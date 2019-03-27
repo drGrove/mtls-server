@@ -124,9 +124,13 @@ class CertProcessor:
             if not os.path.isdir(ca_dir):
                 os.makedirs(ca_dir)
             with open(ca_key_path, 'rb') as key_file:
+                if os.environ.get('CA_KEY_PASSWORD'):
+                    pw = os.environ.get('CA_KEY_PASSWORD').encode('UTF-8')
+                else:
+                    pw = None
                 ca_key = serialization.load_pem_private_key(
                     key_file.read(),
-                    password=None,
+                    password=pw,
                     backend=default_backend()
                 )
                 return ca_key
@@ -137,10 +141,16 @@ class CertProcessor:
                     public_exponent=65537,
                     key_size=4096,
                     backend=default_backend())
+            if os.environ.get('CA_KEY_PASSWORD'):
+                encryption_algorithm = serialization.BestAvailableEncryption(
+                    os.environ.get('CA_KEY_PASSWORD').encode('UTF-8')
+                )
+            else:
+                encryption_algorithm = self.no_encyption
             key_data = key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=self.openssl_format,
-                encryption_algorithm=self.no_encyption
+                encryption_algorithm=encryption_algorithm
             )
             with open(ca_key_path, 'wb') as f:
                 f.write(key_data)
