@@ -25,7 +25,7 @@ def create_app(config=None):
     handler = Handler(config)
 
     with open('VERSION', 'r') as f:
-        version = str(f.read())
+        version = str(f.readline().strip())
 
     # This will generate a CA Certificate and Key if one does not exist
     try:
