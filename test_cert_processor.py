@@ -32,7 +32,8 @@ logging.disable(logging.CRITICAL)
 
 class TestCertProcessorBase(unittest.TestCase):
     def get_ca_cert(self):
-        ca_cert = self.cert_processor.get_ca_cert()
+        key = self.cert_processor.get_ca_key()
+        ca_cert = self.cert_processor.get_ca_cert(key)
         self.assertIsInstance(ca_cert, openssl.x509._Certificate)
 
     def has_ca_key(self):
@@ -585,6 +586,109 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
 
     def test_update_cert(self):
         self.update_cert()
+
+
+class TestCertProcessorPasswordCAKey(TestCertProcessorBase):
+    def setUp(self):
+        self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.AUTHORITY_FOLDER = tempfile.TemporaryDirectory()
+        config = ConfigParser()
+        config.read_string(
+            """
+            [ca]
+            key = {authority_folder}/RootCA.key
+            cert = {authority_folder}/RootCA.pem
+            issuer = My Company Name
+            alternate_name = *.myname.com
+
+            [gnupg]
+            user={user_gnupghome}
+            admin={admin_gnupghome}
+
+            [storage]
+            engine=sqlite3
+
+            [storage.sqlite3]
+            db_path=:memory:
+            """.format(
+                user_gnupghome=self.USER_GNUPGHOME.name,
+                admin_gnupghome=self.ADMIN_GNUPGHOME.name,
+                authority_folder=self.AUTHORITY_FOLDER.name
+            )
+        )
+        self.common_name = 'user@host'
+        self.key = generate_key()
+        self.engine = storage.SQLiteStorageEngine(config)
+        cur = self.engine.conn.cursor()
+        cur.execute('DROP TABLE IF EXISTS certs')
+        self.engine.conn.commit()
+        self.engine.init_db()
+        self.cert_processor = CertProcessor(config)
+        self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
+        self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.users = [
+            User('user@host', gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                'user2@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            ),
+            User(
+                'user3@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.invalid_users = [
+            User(
+                'user4@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            )
+        ]
+        self.admin_users = [
+            User(
+                'admin@host',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.admin_gpg
+            )
+        ]
+        for user in self.users:
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
+        for user in self.admin_users:
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
+
+    def tearDown(self):
+        self.USER_GNUPGHOME.cleanup()
+        self.ADMIN_GNUPGHOME.cleanup()
+        self.AUTHORITY_FOLDER.cleanup()
+
+    def test_get_ca_cert(self):
+        os.environ['CA_KEY_PASSWORD'] = gen_passwd()
+        self.get_ca_cert()
+        del os.environ['CA_KEY_PASSWORD']
+
+    def test_has_ca_key(self):
+        os.environ['CA_KEY_PASSWORD'] = gen_passwd()
+        self.has_ca_key()
+        del os.environ['CA_KEY_PASSWORD']
+
+    def test_generate_cert_with_password(self):
+        os.environ['CA_KEY_PASSWORD'] = gen_passwd()
+        self.generate_cert()
+        del os.environ['CA_KEY_PASSWORD']
+
+    def test_generate_cert_without_password(self):
+        self.generate_cert()
 
 
 if __name__ == "__main__":
