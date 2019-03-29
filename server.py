@@ -80,9 +80,9 @@ def create_app(config=None):
 
 
 if __name__ == "__main__":
-    config_override = os.getenv('CONFIG_OVERRIDE', None)
-    if config_override:
-        config = get_config_from_file(config_override)
+    config_path = os.getenv('CONFIG_PATH', None)
+    if config_path:
+        config = get_config_from_file(config_path)
     else:
         config = get_config_from_file('config.ini')
     app = create_app(config)
