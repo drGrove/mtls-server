@@ -331,7 +331,7 @@ class CertProcessor:
             )
         crl_dp = x509.DistributionPoint(
             [
-                UniformResourceIdentifier(
+                x509.UniformResourceIdentifier(
                     '{protocol}://{server_url}/crl'.format(
                         protocol=self.PROTOCOL,
                         server_url=self.SERVER_URL
@@ -346,6 +346,7 @@ class CertProcessor:
             x509.CRLDistributionPoints([crl_dp]),
             critical=False
         )
+
         cert = cert.sign(
             private_key=ca_pkey,
             algorithm=hashes.SHA256(),
