@@ -61,6 +61,8 @@ class CertProcessor:
         self.config = config
         self.openssl_format = serialization.PrivateFormat.TraditionalOpenSSL
         self.no_encyption = serialization.NoEncryption()
+        self.SERVER_URL = os.environ.get('FQDN') or 'localhost'
+        self.PROTOCOL = os.environ.get('PROTOCOL') or 'http'
 
     def verify(self, data, signature):
         verified = self.user_gpg.verify_data(
@@ -250,6 +252,24 @@ class CertProcessor:
             cert = cert.add_extension(
                 x509.SubjectAlternativeName(alts), critical=False
             )
+        crl_dp = x509.DistributionPoint(
+            [
+                x509.UniformResourceIdentifier(
+                    '{protocol}://{server_url}/crl'.format(
+                        protocol=self.PROTOCOL,
+                        server_url=self.SERVER_URL
+                    )
+                )
+            ],
+            relative_name=None,
+            reasons=None,
+            crl_issuer=None
+        )
+        cert = cert.add_extension(
+            x509.CRLDistributionPoints([crl_dp]),
+            critical=False
+        )
+
         cert = cert.sign(
             private_key=ca_pkey,
             algorithm=hashes.SHA256(),
@@ -309,6 +329,23 @@ class CertProcessor:
             cert = cert.add_extension(
                 x509.SubjectAlternativeName(alts), critical=False
             )
+        crl_dp = x509.DistributionPoint(
+            [
+                UniformResourceIdentifier(
+                    '{protocol}://{server_url}/crl'.format(
+                        protocol=self.PROTOCOL,
+                        server_url=self.SERVER_URL
+                    )
+                )
+            ],
+            relative_name=None,
+            reasons=None,
+            crl_issuer=None
+        )
+        cert = cert.add_extension(
+            x509.CRLDistributionPoints([crl_dp]),
+            critical=False
+        )
         cert = cert.sign(
             private_key=ca_pkey,
             algorithm=hashes.SHA256(),

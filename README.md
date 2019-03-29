@@ -31,6 +31,35 @@ Creating services that inheritely trust no one unless specifically authorized.  
 trust, multi-factor authentication scheme while also timeboxing access to the requested service in case of compromise or
 loss of access keys.
 
+## Configuration ##
+
+### ENV ###
+
+| Parameter       | Description                     | Default    |
+| --------        | -----------                     | -------    |
+| CONFIG_PATH     | The path to the config file     | config.ini |
+| PROTOCOL        | The protocol the server runs as | http       |
+| FQDN            | The Fully Qualified Domain Name | localhost  |
+| CA_KEY_PASSWORD | The password for the CA Key     |            |
+
+### config.ini ###
+
+| Section          | Field          | Description                                                                   |
+| -------          | -----          | -----------                                                                   |
+| mtls             | min_lifetime   | Minimum lifetime of a Client Certificate in seconds.                          |
+| mtls             | max_lifetime   | Maximum lifetime of a Client Certificate in seconds. 0 means this is disabled |
+| ca               | key            | The path to the CA key                                                        |
+| ca               | cert           | The path to the CA Certificate                                                |
+| ca               | alternate_name | Alternate DNS name that can be comma separated for multiples                  |
+| gnupg            | user           | Path to the user GNUPGHOME                                                    |
+| gnupg            | admin          | Path to the admin GNUPGHOME                                                   |
+| storage          | engine         | The engine type for storage: sqlite3 or postgres                              |
+| storage.sqlite3  | db_path        | Path to the sqlite3 database file                                             |
+| storage.postgres | database       | Database name                                                                 |
+| storage.postgres | user           | Database user                                                                 |
+| storage.postgres | password       | Database password                                                             |
+| storage.postgres | host           | Database host                                                                 |
+
 ## Production ##
 
 ### Running From Source ###
@@ -52,10 +81,6 @@ loss of access keys.
     ```shell
     make run-prod
     ```
-
-   ```shell
-
-   ```
 
 ## Development ##
 

@@ -4,6 +4,7 @@ import random
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from configparser import ConfigParser
 from cryptography import x509
@@ -689,6 +690,99 @@ class TestCertProcessorPasswordCAKey(TestCertProcessorBase):
 
     def test_generate_cert_without_password(self):
         self.generate_cert()
+
+
+class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
+    def setUp(self):
+        self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.AUTHORITY_FOLDER = tempfile.TemporaryDirectory()
+        self.FQDN = 'my.test.server'
+        self.fqdn_patch = patch.dict('os.environ', {'FQDN': self.FQDN})
+        self.fqdn_patch.start()
+        config = ConfigParser()
+        config.read_string(
+            """
+            [ca]
+            key = {authority_folder}/RootCA.key
+            cert = {authority_folder}/RootCA.pem
+            issuer = My Company Name
+            alternate_name = *.myname.com
+
+            [gnupg]
+            user={user_gnupghome}
+            admin={admin_gnupghome}
+
+            [storage]
+            engine=sqlite3
+
+            [storage.sqlite3]
+            db_path=:memory:
+            """.format(
+                user_gnupghome=self.USER_GNUPGHOME.name,
+                admin_gnupghome=self.ADMIN_GNUPGHOME.name,
+                authority_folder=self.AUTHORITY_FOLDER.name
+            )
+        )
+        self.common_name = 'user@host'
+        self.key = generate_key()
+        self.engine = storage.SQLiteStorageEngine(config)
+        cur = self.engine.conn.cursor()
+        cur.execute('DROP TABLE IF EXISTS certs')
+        self.engine.conn.commit()
+        self.engine.init_db()
+        self.cert_processor = CertProcessor(config)
+        self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
+        self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.users = [
+            User('user@host', gen_passwd(), generate_key(), gpg=self.user_gpg),
+        ]
+        for user in self.users:
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
+
+    def tearDown(self):
+        self.USER_GNUPGHOME.cleanup()
+        self.ADMIN_GNUPGHOME.cleanup()
+        self.AUTHORITY_FOLDER.cleanup()
+        self.fqdn_patch.stop()
+
+    def test_crl_distribution_path(self):
+        user = self.users[0]
+        csr = user.gen_csr()
+        sig = self.user_gpg.sign(
+            csr.public_bytes(serialization.Encoding.PEM),
+            keyid=user.fingerprint,
+            detach=True,
+            clearsign=True,
+            passphrase=user.password
+        )
+        bcert = self.cert_processor.generate_cert(
+            csr,
+            60,
+            user.fingerprint
+        )
+        cert = x509.load_pem_x509_certificate(
+            bcert,
+            backend=default_backend()
+        )
+        self.assertIsInstance(cert, openssl.x509._Certificate)
+        has_crl_extension = False
+        for extension in cert.extensions:
+            if isinstance(extension.value, x509.CRLDistributionPoints):
+                has_crl_extension = True
+                for distributionPoint in extension.value:
+                    uris = distributionPoint.full_name
+                    for uri in uris:
+                        crl_path = 'http://{FQDN}/crl'.format(
+                            FQDN=self.FQDN
+                        )
+                        self.assertEqual(
+                            uri.value,
+                            crl_path
+                        )
+        self.assertTrue(has_crl_extension)
 
 
 if __name__ == "__main__":
