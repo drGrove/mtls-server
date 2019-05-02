@@ -44,29 +44,40 @@ class Handler:
                         f_path = os.path.join(seed_dir, f)
                         if os.path.isfile(f_path):
                             fingerprint = f.split('.')[0]
-                            logger.info(
-                                'Adding {fp} to {t} Store'.format(
-                                    fp=f,
-                                    t=trust
-                                )
-                            )
                             with open(f_path, 'r') as gpg_data:
                                 gpg_data = str(gpg_data.read())
                                 if trust == 'admin':
-                                    self.cert_processor.admin_gpg.import_keys(
-                                        gpg_data
+                                    self.import_and_trust(
+                                        gpg_data,
+                                        self.cert_processor.admin_gpg
                                     )
-                                    self.cert_processor.admin_gpg.trust_keys(
-                                        [fingerprint],
-                                        'TRUST_ULTIMATE'
+                                # If we add an admin, they're also a user,
+                                # so we can just pull the fingerprint once
+                                # and use that for logging. It will only show
+                                # it's being 'added' to the admin store, but
+                                # that's fine since that assumption is already
+                                # made
+                                fingerprint = self.import_and_trust(
+                                    gpg_data,
+                                    self.cert_processor.user_gpg
+                                )
+                                logger.info(
+                                    'Added {fp} to {t} Store'.format(
+                                        fp=fingerprint,
+                                        t=trust
                                     )
-                                self.cert_processor.user_gpg.import_keys(
-                                    gpg_data
                                 )
-                                self.cert_processor.user_gpg.trust_keys(
-                                    [fingerprint],
-                                    'TRUST_ULTIMATE'
-                                )
+
+    def import_and_trust(self, key_data, gpg):
+        import_data = gpg.import_keys(
+            key_data
+        )
+        fingerprint = import_data.fingerprints[0]
+        gpg.trust_keys(
+            [fingerprint],
+            'TRUST_ULTIMATE'
+        )
+        return fingerprint
 
     def create_cert(self, body):
         lifetime = int(body['lifetime'])
