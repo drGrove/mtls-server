@@ -1,3 +1,4 @@
+"""Certificate Processor."""
 import datetime
 import os
 import uuid
@@ -33,8 +34,17 @@ class CertProcessorMismatchedPublicKeyError(Exception):
     pass
 
 
+class CertProcessorNotAdminUserError(Exception):
+    pass
+
+
 class CertProcessor:
     def __init__(self, config):
+        """Cerificate Processor.
+
+        Args:
+            config (ConfigParser): a config as configparser.
+        """
         user_gnupg_path = config.get('gnupg', 'user')
         admin_gnupg_path = config.get('gnupg', 'admin')
         if not os.path.isabs(user_gnupg_path):
@@ -65,6 +75,18 @@ class CertProcessor:
         self.PROTOCOL = os.environ.get('PROTOCOL') or 'http'
 
     def verify(self, data, signature):
+        """Verifies that the signed data is signed by a trusted key.
+
+        Args:
+            data (str): The data to be verified.
+            signature (str): The signature file.
+        Raises:
+            CertProcessorInvalidSignatureError: Signing Key not in trust store.
+            CertProcessorUntrustedSignatureError: Signing Key in trust store
+            but does not have to correct permissions.
+        Returns:
+            str: The fingerprint of the signer.
+        """
         verified = self.user_gpg.verify_data(
             signature,
             data
@@ -84,6 +106,18 @@ class CertProcessor:
         return verified.pubkey_fingerprint
 
     def admin_verify(self, data, signature):
+        """Verifies that the signed data is signed by an admin key.
+
+        Args:
+            data (str): The data to be verified
+            signature (str): The signature file
+        Raises:
+            CertProcessorInvalidSignatureError: Signing Key not in trust store.
+            CertProcessorUntrustedSignatureError: Signing Key in trust store
+            but does not have to correct permissions.
+        Returns:
+            str: The fingerprint of the signer.
+        """
         verified = self.admin_gpg.verify_data(
             signature,
             data
@@ -105,6 +139,14 @@ class CertProcessor:
         return verified.pubkey_fingerprint
 
     def get_csr(self, csr):
+        """Given a CSR string, get a cryptography CSR Object.
+
+        Args:
+            csr (str): A csr string.
+        Returns:
+            cryptography.x509.CertificateSigningRequest: A cryptography CSR
+            Object if it can be parsed, otherwise None.
+        """
         try:
             return x509.load_pem_x509_csr(bytes(csr, 'utf-8'),
                                           default_backend())
@@ -113,6 +155,12 @@ class CertProcessor:
             return None
 
     def get_ca_key(self):
+        """Get the CA Key.
+
+        Returns:
+            cryptography.hazmat.primitives.asymmetric.rsa.RSAPrivateKey: The
+            CAs private key.
+        """
         ca_key_path = self.config.get('ca', 'key')
         if not os.path.isabs(ca_key_path):
             ca_key_path = os.path.abspath(
@@ -159,6 +207,17 @@ class CertProcessor:
             return key
 
     def get_ca_cert(self, key=None):
+        """Get the CA Certificate.
+
+        Args:
+            key (cryptography.hazmat.primitives.asymmetric.rsa.RSAPrivateKey):
+                A key in cryptography RSAPrivateKey format.
+
+        Returns:
+            cryptography.x509.Certificate: The CA Certificate.
+        Returns:
+            cryptography.x509.Certificate: CA Certificate
+        """
         ca_cert_path = self.config.get('ca', 'cert')
         if not os.path.isabs(ca_cert_path):
             ca_cert_path = os.path.abspath(
@@ -227,12 +286,79 @@ class CertProcessor:
             )
         return ca_cert
 
+    def is_admin(self, fingerprint):
+        """Determine if the fingerprint is associated with with an admin.
+
+        Args:
+            fingerprint (str): The users fingerprint.
+
+        Returns:
+            bool: Is the user an admin.
+        """
+        if self.get_gpg_key_by_fingerprint(fingerprint, True) is not None:
+            return True
+        return False
+
+    def get_gpg_key_by_fingerprint(self, fingerprint, is_admin=False):
+        if is_admin:
+            keys = self.admin_gpg.list_keys(fingerprint)
+        else:
+            keys = self.user_gpg.list_keys(fingerprint)
+        for key in keys:
+            if key['fingerprint'] == fingerprint:
+                return key
+        return None
+
+    def check_subject_against_key(self, subj, signer_key):
+        """Check a subject email against the signing fingerprint.
+
+        The only exception to this is if an admin user is to generate a
+        certificate on behalf of someone else. This should be done with extreme
+        care, but access will only be allowed for the life of the certificate.
+
+        Args:
+            subj (cryptography.x509.Name): An x509 subject.
+            signer_key (dict): PGP key details from python-gnupg.
+
+        Returns:
+            Wheather the subject email matches a PGP uid for a given
+            fingerprint.
+        """
+        email = subj.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value
+        return any(email in uid for uid in signer_key['uids'])
+
     def generate_cert(self, csr, lifetime, fingerprint):
+        """Generate a Certificate from a CSR.
+
+        Args:
+            csr: The CSR object
+            lifetime: The lifetime of the certificate in seconds
+            fingerprint: The fingerprint of the signer for the CSR.
+
+        Raises:
+            CertProcessorNotAdminUserError: When an admin request is made
+            without and admin key
+            CertProcessorInvalidSignatureError: When an invalid user attempts
+            to sign a request for a certificate
+
+        Returns:
+            The certificates public bytes
+        """
         ca_pkey = self.get_ca_key()
         ca_cert = self.get_ca_cert(ca_pkey)
         now = datetime.datetime.utcnow()
         lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
         alts = []
+        is_admin = self.is_admin(fingerprint)
+        user_gpg_key = self.get_gpg_key_by_fingerprint(fingerprint, is_admin)
+        if user_gpg_key is None:
+            raise CertProcessorInvalidSignatureError()
+        email_in_key = self.check_subject_against_key(
+            csr.subject,
+            user_gpg_key
+        )
+        if not email_in_key and not is_admin:
+            raise CertProcessorNotAdminUserError()
         for alt in self.config.get('ca', 'alternate_name').split(','):
             alts.append(x509.DNSName(u'{}'.format(alt)))
         cert = x509.CertificateBuilder().subject_name(
@@ -282,6 +408,20 @@ class CertProcessor:
         return cert.public_bytes(serialization.Encoding.PEM)
 
     def update_cert(self, csr, lifetime):
+        """Given a CSR, look it up in the database, update it and present the
+        new certificate.
+
+        Args:
+            csr (cryptography.x509.CertificateSigningRequest): A CSR.
+            lifetime (int): Lifetime in seconds.
+
+        Raises:
+            CertProcessorMismatchedPublicKeyError: The public key from the new
+            CSR does not match the in database Certificate.
+
+        Returns:
+           cryptography.x509.Certificate: A Signed Certificate for a user.
+        """
         common_name = csr.subject.get_attributes_for_oid(
             NameOID.COMMON_NAME
         )
@@ -356,6 +496,11 @@ class CertProcessor:
         return cert
 
     def get_crl(self):
+        """Generates a Certificate Revocation List.
+
+        Returns:
+            A Certificate Revocation List.
+        """
         ca_pkey = self.get_ca_key()
         ca_cert = self.get_ca_cert(ca_pkey)
         crl = x509.CertificateRevocationListBuilder().issuer_name(
@@ -390,4 +535,9 @@ class CertProcessor:
         return crl
 
     def revoke_cert(self, serial_number):
+        """Given a serial number, revoke a certificate.
+
+        Args:
+            serial_number (int): A certificate serial number.
+        """
         self.storage.revoke_cert(serial_number)

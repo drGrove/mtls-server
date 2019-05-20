@@ -735,7 +735,12 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
-            User('user@host', gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                'user@host.com',
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg
+            ),
         ]
         for user in self.users:
             self.user_gpg.import_keys(
@@ -750,7 +755,7 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
 
     def test_crl_distribution_path(self):
         user = self.users[0]
-        csr = user.gen_csr()
+        csr = user.gen_csr(email=user.email)
         sig = self.user_gpg.sign(
             csr.public_bytes(serialization.Encoding.PEM),
             keyid=user.fingerprint,

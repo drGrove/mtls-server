@@ -24,12 +24,13 @@ def generate_key():
     )
 
 
-def generate_csr(key, common_name):
+def generate_csr(key, common_name, email=None):
     country = 'US'
     state = 'CA'
     locality = 'San Francisco'
     organization_name = 'My Org'
-    email = 'test@example.com'
+    if email is None:
+        email = 'test@example.com'
     return x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, country),
         x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state),
@@ -87,10 +88,12 @@ class User:
     def csrs(self):
         return self.__csrs
 
-    def gen_csr(self, common_name=None):
+    def gen_csr(self, common_name=None, email=None):
         if common_name is None:
             common_name = self.email
-        csr = generate_csr(self.key, common_name)
+        if email is None:
+            email = self.email
+        csr = generate_csr(self.key, common_name, email)
         self.__csrs.append(csr)
         return csr
 

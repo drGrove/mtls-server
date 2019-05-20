@@ -43,7 +43,7 @@ ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	@$(PIP_ENV)/bin/coverage run -m unittest -v
+	-@$(PIP_ENV)/bin/coverage run -m unittest -v
 ifeq "${CI}" ""
 		@docker stop mtls-postgres
 endif
@@ -53,7 +53,7 @@ ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	@$(PIP_ENV)/bin/coverage run -m unittest $(TEST) -v
+	-@$(PIP_ENV)/bin/coverage run -m unittest $(TEST) -v
 ifeq "${CI}" ""
 		@docker stop mtls-postgres
 endif

@@ -28,7 +28,7 @@ from utils import generate_csr
 from utils import generate_key
 
 
-logging.disable(logging.CRITICAL)
+# logging.disable(logging.CRITICAL)
 
 
 class TestHandler(unittest.TestCase):
@@ -215,12 +215,13 @@ class TestHandler(unittest.TestCase):
         self.assertTrue(response['msg'] == 'success')
 
     def test_invalid_revoke_cert_serial_number(self):
+        valid_user = self.users[0]
         user = self.invalid_users[0]
-        csr = user.gen_csr()
+        csr = valid_user.gen_csr()
         bcert = self.cert_processor.generate_cert(
             csr,
             60,
-            user.fingerprint
+            valid_user.fingerprint
         )
         cert = x509.load_pem_x509_certificate(
             bcert,
@@ -241,7 +242,7 @@ class TestHandler(unittest.TestCase):
         )
         body['signature'] = str(sig)
         response = json.loads(self.handler.revoke_cert(body)[0])
-        self.assertEqual(response['error'], True)
+        self.assertEqual(response['error'], True, msg=response)
 
     def test_create_cert(self):
         for user in self.users:
@@ -271,6 +272,69 @@ class TestHandler(unittest.TestCase):
                 cert,
                 openssl.x509._Certificate
             )
+
+    def test_create_cert_for_other_user_as_user(self):
+        user = self.users[0]
+        csr = user.gen_csr(
+            'Some other random user',
+            'someotheruser@example.com'
+        )
+        sig = self.user_gpg.sign(
+            csr.public_bytes(serialization.Encoding.PEM),
+            keyid=user.fingerprint,
+            detach=True,
+            clearsign=True,
+            passphrase=user.password
+        )
+        payload = {
+            'csr': csr.public_bytes(
+                serialization.Encoding.PEM
+            ).decode('utf-8'),
+            'signature': str(sig),
+            'lifetime': 60,
+            'type': 'CERTIFICATE'
+        }
+        response = json.loads(self.handler.create_cert(payload)[0])
+        self.assertEqual(response['error'], True, msg=response)
+
+    def test_create_cert_for_other_user_as_admin(self):
+        user = self.admin_users[0]
+        csr = user.gen_csr(
+            'Some other random user',
+            'someotheruser@example.com'
+        )
+        sig = self.admin_gpg.sign(
+            csr.public_bytes(serialization.Encoding.PEM),
+            keyid=user.fingerprint,
+            detach=True,
+            clearsign=True,
+            passphrase=user.password
+        )
+        payload = {
+            'csr': csr.public_bytes(
+                serialization.Encoding.PEM
+            ).decode('utf-8'),
+            'signature': str(sig),
+            'lifetime': 60,
+            'type': 'CERTIFICATE'
+        }
+        response = json.loads(self.handler.create_cert(payload)[0])
+        self.assertIn(
+            "-----BEGIN CERTIFICATE-----",
+            response.get('cert', ""),
+            msg=response
+        )
+        cert = x509.load_pem_x509_certificate(
+            response['cert'].encode('UTF-8'),
+            backend=default_backend()
+        )
+        email = cert.subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0]
+        email = email.value
+        self.assertEqual(
+            email,
+            'someotheruser@example.com',
+            msg=response
+        )
 
     def test_invalid_user_create_cert(self):
         user = self.invalid_users[0]

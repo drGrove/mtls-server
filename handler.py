@@ -14,6 +14,7 @@ from cert_processor import CertProcessorInvalidSignatureError
 from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorMismatchedPublicKeyError
 from cert_processor import CertProcessorUntrustedSignatureError
+from cert_processor import CertProcessorNotAdminUserError
 from logger import logger
 from utils import error_response
 from utils import write_sig_to_file
@@ -29,6 +30,7 @@ class Handler:
         self.seed()
 
     def seed(self):
+        """Seeds the User and Admin trust databases."""
         logger.info('Seeding PGP Trust Databases')
         seed_base_dir = self.config.get(
             'mtls',
@@ -69,6 +71,16 @@ class Handler:
                                 )
 
     def import_and_trust(self, key_data, gpg):
+        """Imports a key into a given keyring and trust database as well as
+        properly trusting it for use.
+
+        Args:
+            key_data (str): The key data in ACSII or binary format.
+            gpg (gnupg.GPG): The gpg instance.
+
+        Returns:
+            str: The fingerprint of the newly imported and trusted key.
+        """
         import_data = gpg.import_keys(
             key_data
         )
@@ -80,6 +92,7 @@ class Handler:
         return fingerprint
 
     def create_cert(self, body):
+        """Create a certificate."""
         lifetime = int(body['lifetime'])
         min_lifetime = int(self.config.get(
             'mtls',
@@ -154,11 +167,26 @@ class Handler:
                 'CSR Public Key does not match found certificate.'
             )
             return error_response('Internal Error')
+        except CertProcessorNotAdminUserError:
+            logger.error(
+                'User {} is not an admin and attempted '.format(fingerprint) +
+                'to generate a certificate they are not allowed to generate.'
+            )
+            return error_response('Invalid Request', 403)
+        except CertProcessorInvalidSignatureError:
+            logger.info('Invalid signature in CSR.')
+            return error_response('Invalid signature', 401)
 
     def revoke_cert(self, body):
         """
         A user should be able to revoke their own certificate. An admin should
         be able to revoke the certificate of any user.
+
+        Args:
+            body: A dictionary from the JSON input.
+
+        Returns:
+            (json, int): a tuple of the json response and http status code.
         """
         is_admin = False
         fingerprint = None
@@ -211,6 +239,7 @@ class Handler:
         }), 200
 
     def add_user(self, body, is_admin=False):
+        """Add a user or admin."""
         fingerprint = None
         sig_path = write_sig_to_file(body['signature'])
         try:
@@ -269,6 +298,7 @@ class Handler:
         }), 201
 
     def remove_user(self, body, is_admin=False):
+        """Remove a user or admin."""
         fingerprint = None
         sig_path = write_sig_to_file(body['signature'])
         try:
