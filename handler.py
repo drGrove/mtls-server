@@ -15,6 +15,7 @@ from cert_processor import CertProcessorKeyNotFoundError
 from cert_processor import CertProcessorMismatchedPublicKeyError
 from cert_processor import CertProcessorUntrustedSignatureError
 from cert_processor import CertProcessorNotAdminUserError
+from cert_processor import CertProcessorNoPGPKeyFoundError
 from logger import logger
 from utils import error_response
 from utils import write_sig_to_file
@@ -173,9 +174,9 @@ class Handler:
                 'to generate a certificate they are not allowed to generate.'
             )
             return error_response('Invalid Request', 403)
-        except CertProcessorInvalidSignatureError:
-            logger.info('Invalid signature in CSR.')
-            return error_response('Invalid signature', 401)
+        except CertProcessorNoPGPKeyFoundError:
+            logger.info('PGP Key not found.')
+            return error_response('Unauthorized', 401)
 
     def revoke_cert(self, body):
         """

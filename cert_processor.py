@@ -38,6 +38,10 @@ class CertProcessorNotAdminUserError(Exception):
     pass
 
 
+class CertProcessorNoPGPKeyFoundError(Exception):
+    pass
+
+
 class CertProcessor:
     def __init__(self, config):
         """Cerificate Processor.
@@ -301,9 +305,9 @@ class CertProcessor:
 
     def get_gpg_key_by_fingerprint(self, fingerprint, is_admin=False):
         if is_admin:
-            keys = self.admin_gpg.list_keys(fingerprint)
+            keys = self.admin_gpg.list_keys()
         else:
-            keys = self.user_gpg.list_keys(fingerprint)
+            keys = self.user_gpg.list_keys()
         for key in keys:
             if key['fingerprint'] == fingerprint:
                 return key
@@ -352,7 +356,7 @@ class CertProcessor:
         is_admin = self.is_admin(fingerprint)
         user_gpg_key = self.get_gpg_key_by_fingerprint(fingerprint, is_admin)
         if user_gpg_key is None:
-            raise CertProcessorInvalidSignatureError()
+            raise CertProcessorNoPGPKeyFoundError()
         email_in_key = self.check_subject_against_key(
             csr.subject,
             user_gpg_key
