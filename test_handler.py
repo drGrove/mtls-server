@@ -412,6 +412,28 @@ class TestHandler(unittest.TestCase):
         response_json = json.loads(response[0])
         self.assertEqual(response_json['msg'], 'success')
 
+    def test_add_admin_twice_valid_admin(self):
+        admin = self.admin_users[0]
+        new_user = self.new_users[0]
+        sig = self.admin_gpg.sign(
+           "B10116B8193F2DBD",
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': "B10116B8193F2DBD",
+            'signature': str(sig),
+            'type': 'USER'
+            }
+        response = self.handler.add_user(payload, is_admin=True)
+        response_json = json.loads(response[0])
+        self.assertEqual(response_json['msg'], 'success')
+        response = self.handler.add_user(payload, is_admin=True)
+        response_json = json.loads(response[0])
+        self.assertEqual(response_json['msg'], 'success')
+
     def test_add_admin_add_key_not_on_keyserver(self):
         admin = self.admin_users[0]
         new_user = self.invalid_users[0]

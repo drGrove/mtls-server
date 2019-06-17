@@ -252,12 +252,6 @@ class Handler:
                 body['fingerprint'].encode('UTF-8'),
                 sig_path
             )
-            logger.info(
-                'Admin {adminfp} adding user {userfp}'.format(
-                    adminfp=fingerprint,
-                    userfp=body['fingerprint']
-                )
-            )
         except (CertProcessorInvalidSignatureError,
                 CertProcessorUntrustedSignatureError):
             os.remove(sig_path)
@@ -279,6 +273,12 @@ class Handler:
                     fingerprint
                 )
                 if not has_user:
+                    logger.info(
+                        'Admin {adminfp} adding admin user {userfp}'.format(
+                            adminfp=fingerprint,
+                            userfp=body['fingerprint']
+                        )
+                    )
                     # Add a user to the admin trust store
                     self.add_and_trust_user(
                         self.cert_processor.admin_gpg,
@@ -292,7 +292,16 @@ class Handler:
 
             if not has_user:
                 # Add the user to the user trust store
-                self.add_and_trust_user(self.cert_processor.user_gpg, fingerprint)
+                logger.info(
+                    'Admin {adminfp} adding admin user {userfp}'.format(
+                        adminfp=fingerprint,
+                        userfp=body['fingerprint']
+                    )
+                )
+                self.add_and_trust_user(
+                    self.cert_processor.user_gpg,
+                    fingerprint
+                )
             return json.dumps({
                 'msg': 'success'
             }), 201
@@ -316,7 +325,7 @@ class Handler:
             ),
             fingerprint
         )
-        if result.count is None:
+        if result.count is None or result.count == 0:
             raise GPGKeyNotFoundException()
         self.cert_processor.user_gpg.trust_keys(
             [fingerprint],
