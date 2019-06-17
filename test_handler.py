@@ -397,6 +397,25 @@ class TestHandler(unittest.TestCase):
         admin = self.admin_users[0]
         new_user = self.new_users[0]
         sig = self.admin_gpg.sign(
+           "B10116B8193F2DBD",
+            keyid=admin.fingerprint,
+            clearsign=True,
+            detach=True,
+            passphrase=admin.password
+        )
+        payload = {
+            'fingerprint': "B10116B8193F2DBD",
+            'signature': str(sig),
+            'type': 'USER'
+            }
+        response = self.handler.add_user(payload, is_admin=True)
+        response_json = json.loads(response[0])
+        self.assertEqual(response_json['msg'], 'success')
+
+    def test_add_admin_add_key_not_on_keyserver(self):
+        admin = self.admin_users[0]
+        new_user = self.invalid_users[0]
+        sig = self.admin_gpg.sign(
             new_user.fingerprint.encode('UTF-8'),
             keyid=admin.fingerprint,
             clearsign=True,
@@ -408,8 +427,8 @@ class TestHandler(unittest.TestCase):
             'signature': str(sig),
             'type': 'USER'
         }
-        response = json.loads(self.handler.add_user(payload, is_admin=True)[0])
-        self.assertEqual(response['msg'], 'success')
+        response = self.handler.add_user(payload, is_admin=True)
+        self.assertEqual(response[1], 422)
 
     def test_add_admin_invalid_admin(self):
         admin = self.users[0]
