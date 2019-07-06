@@ -4,14 +4,15 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-cryptography = "==2.4.2"
-python-gnupg = "==0.4.4"
-pycodestyle = "==2.4.0"
 Flask = "==1.0.2"
 Jinja2 = "==2.10.1"
-uWSGI = "==2.0.17.1"
+cryptography = "==2.4.2"
 psycopg2-binary = "==2.7.7"
+python-gnupg = "==0.4.4"
+uWSGI = "==2.0.17.1"
 
 [dev-packages]
+black = "==19.3b0"
 coverage = "==4.5.2"
 coveralls = "==1.6.0"
+pycodestyle = "==2.4.0"

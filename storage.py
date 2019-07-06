@@ -31,6 +31,7 @@ class SqlStorageEngine:
     """
     A Base SQL Storage Engine implementation.
     """
+
     def close(self):
         return self.conn.close()
 
@@ -42,12 +43,14 @@ class SQLiteStorageEngine(SqlStorageEngine):
 
     def __init__(self, config):
         import sqlite3
-        db_path = config.get('storage.sqlite3', 'db_path')
+
+        db_path = config.get("storage.sqlite3", "db_path")
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
 
     def init_db(self):
         cur = self.conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS certs (
                 serial_number text,
                 common_name text,
@@ -56,7 +59,8 @@ class SQLiteStorageEngine(SqlStorageEngine):
                 revoked boolean,
                 fingerprint text
             )
-            """)
+            """
+        )
         self.conn.commit()
 
     def save_cert(self, cert, fingerprint):
@@ -67,7 +71,8 @@ class SQLiteStorageEngine(SqlStorageEngine):
         common_name = common_name[0].value
 
         cur = self.conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO certs (
                 serial_number,
                 common_name,
@@ -77,34 +82,38 @@ class SQLiteStorageEngine(SqlStorageEngine):
                 fingerprint
             )
             VALUES (?, ?, ?, ?, ?, ?)
-            """, [
+            """,
+            [
                 str(cert.serial_number),
                 common_name,
                 cert.not_valid_after,
-                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
+                cert.public_bytes(Encoding.PEM).decode("UTF-8"),
                 False,
-                fingerprint
-            ])
+                fingerprint,
+            ],
+        )
         self.conn.commit()
 
     def revoke_cert(self, serial_number):
         cur = self.conn.cursor()
-        logger.info('Revoking certificate {serial_number}'.format(
-            serial_number=serial_number
-        ))
-        cur.execute('UPDATE certs SET revoked=1 WHERE serial_number=?',
-                    [str(serial_number)])
+        logger.info(
+            "Revoking certificate {serial_number}".format(serial_number=serial_number)
+        )
+        cur.execute(
+            "UPDATE certs SET revoked=1 WHERE serial_number=?", [str(serial_number)]
+        )
         self.conn.commit()
 
     def update_cert(self, serial_number=None, cert=None):
         if not serial_number or not cert:
-            logger.error('A serial number and cert are required to update.')
+            logger.error("A serial number and cert are required to update.")
             raise UpdateCertException
         cur = self.conn.cursor()
-        logger.info('Updating certificate {serial_number}'.format(
-            serial_number=serial_number
-        ))
-        cur.execute("""
+        logger.info(
+            "Updating certificate {serial_number}".format(serial_number=serial_number)
+        )
+        cur.execute(
+            """
             UPDATE
                 certs
             SET
@@ -112,20 +121,17 @@ class SQLiteStorageEngine(SqlStorageEngine):
                 not_valid_after=?
             WHERE
                 serial_number=?
-            """, [
-                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
+            """,
+            [
+                cert.public_bytes(Encoding.PEM).decode("UTF-8"),
                 cert.not_valid_after,
-                str(serial_number)
-            ]
+                str(serial_number),
+            ],
         )
         self.conn.commit()
 
     def get_cert(
-        self,
-        serial_number=None,
-        common_name=None,
-        fingerprint=None,
-        show_revoked=False
+        self, serial_number=None, common_name=None, fingerprint=None, show_revoked=False
     ):
         cur = self.conn.cursor()
         key = None
@@ -158,10 +164,7 @@ class SQLiteStorageEngine(SqlStorageEngine):
     def get_revoked_certs(self):
         cur = self.conn.cursor()
         now = str(datetime.datetime.utcnow())
-        cur.execute(
-            "SELECT cert FROM certs WHERE revoked=1 AND not_valid_after>?",
-            [now]
-        )
+        cur.execute("SELECT cert FROM certs WHERE revoked=1 AND not_valid_after>?", [now])
         rows = cur.fetchall()
         certs = []
         for row in rows:
@@ -173,14 +176,17 @@ class SQLiteStorageEngine(SqlStorageEngine):
         common_name = common_name[0].value
 
         cur = self.conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             SELECT count(*) FROM certs
             WHERE serial_number=?
             OR (
                 common_name=?
                 AND revoked=0
             )
-            """, [str(cert.serial_number), common_name])
+            """,
+            [str(cert.serial_number), common_name],
+        )
         conflicts = cur.fetchone()[0]
         return conflicts > 0
 
@@ -192,17 +198,19 @@ class PostgresqlStorageEngine(SqlStorageEngine):
 
     def __init__(self, config):
         import psycopg2
+
         self.conn = psycopg2.connect(
-            dbname=config.get('storage.postgres', 'database'),
-            user=config.get('storage.postgres', 'user'),
-            password=config.get('storage.postgres', 'password'),
-            host=config.get('storage.postgres', 'host', fallback='localhost'),
-            port=config.get('storage.postgres', 'port', fallback=5432)
+            dbname=config.get("storage.postgres", "database"),
+            user=config.get("storage.postgres", "user"),
+            password=config.get("storage.postgres", "password"),
+            host=config.get("storage.postgres", "host", fallback="localhost"),
+            port=config.get("storage.postgres", "port", fallback=5432),
         )
 
     def init_db(self):
         cur = self.conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS certs (
                 serial_number text,
                 common_name text,
@@ -211,7 +219,8 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 revoked boolean,
                 fingerprint text
             )
-            """)
+            """
+        )
         self.conn.commit()
 
     def save_cert(self, cert, fingerprint):
@@ -222,7 +231,8 @@ class PostgresqlStorageEngine(SqlStorageEngine):
         common_name = common_name[0].value
 
         cur = self.conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO certs (
                 serial_number,
                 common_name,
@@ -232,39 +242,37 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 fingerprint
             )
             VALUES (%s, %s, %s, %s, %s, %s)
-            """, (
+            """,
+            (
                 str(cert.serial_number),
                 common_name,
                 cert.not_valid_after,
-                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
+                cert.public_bytes(Encoding.PEM).decode("UTF-8"),
                 False,
-                fingerprint
-            ))
+                fingerprint,
+            ),
+        )
         self.conn.commit()
 
     def get_cert(
-        self,
-        serial_number=None,
-        common_name=None,
-        fingerprint=None,
-        show_revoked=False
+        self, serial_number=None, common_name=None, fingerprint=None, show_revoked=False
     ):
         cur = self.conn.cursor()
         value = None
-        query = 'SELECT cert FROM certs WHERE'
+        query = "SELECT cert FROM certs WHERE"
         if serial_number is not None:
-            query += ' serial_number = %s'
+            query += " serial_number = %s"
             value = str(serial_number)
         elif fingerprint is not None:
-            query += ' fingerprint = %s'
+            query += " fingerprint = %s"
             value = fingerprint
         elif common_name is not None:
-            query += ' common_name = %s'
+            query += " common_name = %s"
             value = common_name
         else:
             return None
 
-        query += ' AND revoked = %s'
+        query += " AND revoked = %s"
 
         cur.execute(query, (value, show_revoked))
         rows = cur.fetchall()
@@ -275,24 +283,25 @@ class PostgresqlStorageEngine(SqlStorageEngine):
 
     def revoke_cert(self, serial_number):
         cur = self.conn.cursor()
-        logger.info('Revoking certificate {serial_number}'.format(
-            serial_number=serial_number
-        ))
+        logger.info(
+            "Revoking certificate {serial_number}".format(serial_number=serial_number)
+        )
         cur.execute(
             "UPDATE certs SET revoked=true WHERE serial_number = %s",
-            (str(serial_number),)
+            (str(serial_number),),
         )
         self.conn.commit()
 
     def update_cert(self, serial_number=None, cert=None):
         if not serial_number or not cert:
-            logger.error('A serial number and cert are required to update.')
+            logger.error("A serial number and cert are required to update.")
             raise UpdateCertException
         cur = self.conn.cursor()
-        logger.info('Updating certificate {serial_number}'.format(
-            serial_number=serial_number
-        ))
-        cur.execute("""
+        logger.info(
+            "Updating certificate {serial_number}".format(serial_number=serial_number)
+        )
+        cur.execute(
+            """
             UPDATE
                 certs
             SET
@@ -300,11 +309,12 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 not_valid_after = %s
             WHERE
                 serial_number = %s
-            """, (
-                cert.public_bytes(Encoding.PEM).decode('UTF-8'),
+            """,
+            (
+                cert.public_bytes(Encoding.PEM).decode("UTF-8"),
                 cert.not_valid_after,
-                str(serial_number)
-            )
+                str(serial_number),
+            ),
         )
         self.conn.commit()
 
@@ -313,9 +323,8 @@ class PostgresqlStorageEngine(SqlStorageEngine):
         now = datetime.datetime.utcnow()
         not_valid_after = now.strftime("%Y-%m-%d %H:%M:%S")
         cur.execute(
-            "SELECT cert FROM certs WHERE revoked = true AND " +
-            "not_valid_after > %s",
-            (str(not_valid_after),)
+            "SELECT cert FROM certs WHERE revoked = true AND " + "not_valid_after > %s",
+            (str(not_valid_after),),
         )
         rows = cur.fetchall()
         certs = []
@@ -328,7 +337,8 @@ class PostgresqlStorageEngine(SqlStorageEngine):
         common_name = common_name[0].value
 
         cur = self.conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             SELECT count(*) FROM certs
             WHERE serial_number = %s
             OR (
@@ -336,7 +346,9 @@ class PostgresqlStorageEngine(SqlStorageEngine):
                 AND fingerprint = %s
                 AND revoked=false
             )
-            """, (str(cert.serial_number), common_name, fingerprint))
+            """,
+            (str(cert.serial_number), common_name, fingerprint),
+        )
         conflicts = cur.fetchone()[0]
         return conflicts > 0
 
@@ -355,12 +367,12 @@ class StorageEngine:
     """
 
     def __new__(cls, config):
-        engine = config.get('storage', 'engine', fallback=None)
+        engine = config.get("storage", "engine", fallback=None)
         if engine is None:
             raise StorageEngineMissing()
-        if engine == 'sqlite3':
+        if engine == "sqlite3":
             return SQLiteStorageEngine(config)
-        elif engine == 'postgres':
+        elif engine == "postgres":
             return PostgresqlStorageEngine(config)
         else:
             raise StorageEngineNotSupportedError(engine)

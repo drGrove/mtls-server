@@ -14,7 +14,7 @@ from handler import Handler
 from logger import logger
 from utils import get_config_from_file
 
-__author__ = 'Danny Grove <danny@drgrovellc.com>'
+__author__ = "Danny Grove <danny@drgrovellc.com>"
 
 app = None
 handler = None
@@ -24,7 +24,7 @@ def create_app(config=None):
     app = Flask(__name__)
     handler = Handler(config)
 
-    with open('VERSION', 'r') as f:
+    with open("VERSION", "r") as f:
         version = str(f.readline().strip())
 
     # This will generate a CA Certificate and Key if one does not exist
@@ -36,54 +36,52 @@ def create_app(config=None):
         key = handler.cert_processor.get_ca_key()
         cert = handler.cert_processor.get_ca_cert(key)
 
-    @app.route('/', methods=['POST'])
+    @app.route("/", methods=["POST"])
     def create_handler():
         body = request.get_json()
-        if body['type'] == "CERTIFICATE":
+        if body["type"] == "CERTIFICATE":
             return handler.create_cert(body)
-        if body['type'] == "USER":
+        if body["type"] == "USER":
             return handler.add_user(body)
-        if body['type'] == "ADMIN":
+        if body["type"] == "ADMIN":
             return handler.add_user(body, is_admin=True)
 
-    @app.route('/', methods=['DELETE'])
+    @app.route("/", methods=["DELETE"])
     def delete_handler():
         body = request.get_json()
-        if body['type'] == "CERTIFICATE":
+        if body["type"] == "CERTIFICATE":
             return handler.revoke_cert(body)
-        if body['type'] == "USER":
+        if body["type"] == "USER":
             return handler.remove_user(body)
-        if body['type'] == "ADMIN":
+        if body["type"] == "ADMIN":
             return handler.remove_user(body, is_admin=True)
 
-    @app.route('/ca', methods=['GET'])
+    @app.route("/ca", methods=["GET"])
     def get_ca_cert():
         cert = handler.cert_processor.get_ca_cert()
-        cert = cert.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
-        return json.dumps({
-            'issuer': handler.config.get('ca', 'issuer'),
-            'cert': cert
-        }), 200
+        cert = cert.public_bytes(serialization.Encoding.PEM).decode("UTF-8")
+        return (
+            json.dumps({"issuer": handler.config.get("ca", "issuer"), "cert": cert}),
+            200,
+        )
 
-    @app.route('/crl', methods=['GET'])
+    @app.route("/crl", methods=["GET"])
     def get_crl():
         crl = handler.cert_processor.get_crl()
-        return crl.public_bytes(serialization.Encoding.PEM).decode('UTF-8')
+        return crl.public_bytes(serialization.Encoding.PEM).decode("UTF-8")
 
-    @app.route('/version', methods=['GET'])
+    @app.route("/version", methods=["GET"])
     def get_version():
-        return json.dumps({
-            'version': version
-        }), 200
+        return json.dumps({"version": version}), 200
 
     return app
 
 
 if __name__ == "__main__":
-    config_path = os.getenv('CONFIG_PATH', None)
+    config_path = os.getenv("CONFIG_PATH", None)
     if config_path:
         config = get_config_from_file(config_path)
     else:
-        config = get_config_from_file('config.ini')
+        config = get_config_from_file("config.ini")
     app = create_app(config)
-    app.run(port=config.get('mtls', 'port', fallback=4000))
+    app.run(port=config.get("mtls", "port", fallback=4000))

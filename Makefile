@@ -28,9 +28,11 @@ create-ca: gen-secrets-folder
 create-pgp-key: gen-secrets-folder
 	@./scripts/gen-gnupg-key
 
+format:
+	@pipenv run black -l 90 ./*.py
+
 lint:
-	@. $(PIP_ENV)/bin/activate
-	@$(PIP_ENV)/bin/pycodestyle --first *.py
+	@pipenv run pycodestyle --max-line-length=90 ./*.py
 
 coverage:
 	@$(PIP_ENV)/bin/coverage report -m
