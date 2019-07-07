@@ -1,5 +1,4 @@
 import os
-from configparser import ConfigParser
 import json
 
 from cryptography import x509
@@ -9,17 +8,17 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from cert_processor import CertProcessor
-from cert_processor import CertProcessorInvalidSignatureError
-from cert_processor import CertProcessorKeyNotFoundError
-from cert_processor import CertProcessorMismatchedPublicKeyError
-from cert_processor import CertProcessorUntrustedSignatureError
-from cert_processor import CertProcessorNotAdminUserError
-from cert_processor import CertProcessorNoPGPKeyFoundError
-from logger import logger
-from utils import error_response
-from utils import write_sig_to_file
-from utils import get_config_from_file
+from .cert_processor import CertProcessor
+from .cert_processor import CertProcessorInvalidSignatureError
+from .cert_processor import CertProcessorKeyNotFoundError
+from .cert_processor import CertProcessorMismatchedPublicKeyError
+from .cert_processor import CertProcessorUntrustedSignatureError
+from .cert_processor import CertProcessorNotAdminUserError
+from .cert_processor import CertProcessorNoPGPKeyFoundError
+from .logger import logger
+from .utils import error_response
+from .utils import write_sig_to_file
+from .utils import get_config_from_file
 
 
 class GPGKeyNotFoundException(Exception):
@@ -28,8 +27,6 @@ class GPGKeyNotFoundException(Exception):
 
 class Handler:
     def __init__(self, config=None):
-        if config is None:
-            config = get_config_from_file("config.ini")
         self.config = config
         self.cert_processor = CertProcessor(config)
         self.seed()

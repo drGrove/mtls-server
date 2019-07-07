@@ -6,15 +6,15 @@ from cryptography.hazmat.primitives import serialization
 from flask import Flask
 from flask import request
 
-from cert_processor import CertProcessor
-from cert_processor import CertProcessorKeyNotFoundError
-from cert_processor import CertProcessorInvalidSignatureError
-from cert_processor import CertProcessorUntrustedSignatureError
-from handler import Handler
-from logger import logger
-from utils import get_config_from_file
+from . import __version__
+from .cert_processor import CertProcessor
+from .cert_processor import CertProcessorInvalidSignatureError
+from .cert_processor import CertProcessorKeyNotFoundError
+from .cert_processor import CertProcessorUntrustedSignatureError
+from .handler import Handler
+from .logger import logger
+from .utils import get_config_from_file
 
-__author__ = "Danny Grove <danny@drgrovellc.com>"
 
 app = None
 handler = None
@@ -23,9 +23,6 @@ handler = None
 def create_app(config=None):
     app = Flask(__name__)
     handler = Handler(config)
-
-    with open("VERSION", "r") as f:
-        version = str(f.readline().strip())
 
     # This will generate a CA Certificate and Key if one does not exist
     try:
@@ -72,7 +69,7 @@ def create_app(config=None):
 
     @app.route("/version", methods=["GET"])
     def get_version():
-        return json.dumps({"version": version}), 200
+        return json.dumps({"version": __version__}), 200
 
     return app
 
@@ -82,6 +79,6 @@ if __name__ == "__main__":
     if config_path:
         config = get_config_from_file(config_path)
     else:
-        config = get_config_from_file("config.ini")
+        config = get_config_from_file("../config.ini")
     app = create_app(config)
     app.run(port=config.get("mtls", "port", fallback=4000))

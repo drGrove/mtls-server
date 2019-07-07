@@ -1,9 +1,12 @@
-.PHONY: setup clean lint create-ca build-image tag-image
+.PHONY: setup clean lint create-ca build-image tag-image test
 SHELL := /bin/bash
 DOCKER_REGISTRY ?= ""
 TAG ?= latest
 
 PIP_ENV := $(shell pipenv --venv)
+
+shell:
+	@pipenv shell
 
 setup:
 	@pipenv install
@@ -60,8 +63,14 @@ ifeq "${CI}" ""
 		@docker stop mtls-postgres
 endif
 
+build-develop:
+	@pipenv run python setup.py develop
+
 build-image:
 	@docker build -t mtls-server:$(TAG) .
+
+build-pypi:
+	@pipenv run python setup.py sdist bdist_wheel
 
 tag-image: build-image
 	@docker tag mtls-server:$(TAG) $(DOCKER_REGISTRY)mtls-server:$(TAG)
@@ -79,6 +88,9 @@ run-postgres:
 run:
 	@. $(PIP_ENV)/bin/activate
 	@$(PIP_ENV)/bin/python3 server.py
+
+run-wsgi:
+	@pipenv run uwsgi --ini uwsgi.ini
 
 run-prod: build-image run-postgres
 	@docker run \
@@ -100,7 +112,6 @@ run-prod: build-image run-postgres
 		-v $(PWD)/secrets/certs/authority:/etc/nginx/ssl/client_certs/ \
 		-v $(PWD)/nginx/html:/usr/share/nginx/ \
 		nginx
-
 
 stop-prod:
 	@docker stop mtls-nginx

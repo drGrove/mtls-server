@@ -1,3 +1,8 @@
+*.egg-info/
+/.eggs/
+/build/
+/dist/
+
 env
 *.pyc
 config.ini*
@@ -7,3 +12,6 @@ secrets
 *.sw[o|p]
 *.db
 *.coverage
+*.tar.gz
+.DS_Store
+__pycache__

@@ -10,8 +10,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-import storage
-from cert_processor import CertProcessorMismatchedPublicKeyError
+from mtls_server import storage
+from mtls_server.cert_processor import CertProcessorMismatchedPublicKeyError
 
 
 logging.disable(logging.CRITICAL)
@@ -192,14 +192,14 @@ class TestSQLiteStorageEngine(unittest.TestCase):
         cert = generate_fake_cert(
             "user@host1", serial_number=123, pkey=self.pkey, upkey=self.upkey
         )
-        with self.assertRaises(storage.StorageEngineCertificateConflict):
+        with self.assertRaises(storage.exceptions.StorageEngineCertificateConflict):
             self.engine.save_cert(cert, "ABCDEFGH")
 
         # Conflicting CommonName with still-valid certificate
         cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
         self.engine.save_cert(cert, "ABCDEFGH")
         cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
-        with self.assertRaises(storage.StorageEngineCertificateConflict):
+        with self.assertRaises(storage.exceptions.StorageEngineCertificateConflict):
             self.engine.save_cert(cert, "ABCDEFGH")
 
     def test_revoke_cert_persists_data(self):
@@ -328,14 +328,14 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         cert = generate_fake_cert(
             "user@host1", serial_number=123, pkey=self.pkey, upkey=self.upkey
         )
-        with self.assertRaises(storage.StorageEngineCertificateConflict):
+        with self.assertRaises(storage.exceptions.StorageEngineCertificateConflict):
             self.engine.save_cert(cert, "ABCDEFGH")
 
         # Conflicting CommonName with still-valid certificate
         cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
         self.engine.save_cert(cert, "39DL2LSL")
         cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
-        with self.assertRaises(storage.StorageEngineCertificateConflict):
+        with self.assertRaises(storage.exceptions.StorageEngineCertificateConflict):
             self.engine.save_cert(cert, "39DL2LSL")
 
     def test_revoke_cert_persists_data(self):

@@ -17,15 +17,15 @@ from cryptography.x509.oid import NameOID
 import gnupg
 import re
 
-from cert_processor import CertProcessor
-from cert_processor import CertProcessorKeyNotFoundError
-from cert_processor import CertProcessorInvalidSignatureError
-import storage
-from utils import User
-from utils import gen_passwd
-from utils import gen_pgp_key
-from utils import generate_csr
-from utils import generate_key
+from mtls_server import storage
+from mtls_server.cert_processor import CertProcessor
+from mtls_server.cert_processor import CertProcessorKeyNotFoundError
+from mtls_server.cert_processor import CertProcessorInvalidSignatureError
+from mtls_server.utils import User
+from mtls_server.utils import gen_passwd
+from mtls_server.utils import gen_pgp_key
+from mtls_server.utils import generate_csr
+from mtls_server.utils import generate_key
 
 
 logging.disable(logging.CRITICAL)
@@ -386,17 +386,17 @@ class TestCertProcessorMissingStorage(TestCertProcessorBase):
         self.ADMIN_GNUPGHOME.cleanup()
 
     def test_missing_storage(self):
-        with self.assertRaises(storage.StorageEngineMissing):
+        with self.assertRaises(storage.exceptions.StorageEngineMissing):
             self.cert_processor = CertProcessor(self.config)
 
 
 class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
     def setUp(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../")
         self.USER_GNUPGHOME = tempfile.TemporaryDirectory(prefix=dir_path + "/secrets/")
         self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory(prefix=dir_path + "/secrets/")
-        relative_user = "." + self.USER_GNUPGHOME.name.split(dir_path)[1]
-        relative_admin = "." + self.ADMIN_GNUPGHOME.name.split(dir_path)[1]
+        relative_user = "../" + self.USER_GNUPGHOME.name.split(dir_path)[1]
+        relative_admin = "../" + self.ADMIN_GNUPGHOME.name.split(dir_path)[1]
         config = ConfigParser()
         config.read_string(
             """

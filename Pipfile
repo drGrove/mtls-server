@@ -9,7 +9,7 @@ Jinja2 = "==2.10.1"
 cryptography = "==2.4.2"
 psycopg2-binary = "==2.7.7"
 python-gnupg = "==0.4.4"
-uWSGI = "==2.0.17.1"
+uWSGI = "==2.0.18"
 
 [dev-packages]
 black = "==19.3b0"
