@@ -1,7 +1,7 @@
 FROM python:3.7-slim-stretch as build-container
 MAINTAINER Danny Grove <danny@drgrovellc.com>
 RUN apt update && \
-  apt install -y gnupg openssl build-essential make
+  apt install -y gnupg openssl build-essential make sqlite3
 RUN useradd -u 1000 -m mtls
 RUN echo "export PATH=/home/mtls/.local/bin:$PATH" >> .bashrc
 USER mtls
