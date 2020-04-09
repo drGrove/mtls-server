@@ -263,14 +263,14 @@ class TestHandler(unittest.TestCase):
         admin = self.admin_users[0]
         new_user = self.new_users[0]
         sig = self.admin_gpg.sign(
-            new_user.fingerprint.encode("UTF-8"),
+            "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD".encode("UTF-8"),
             keyid=admin.fingerprint,
             clearsign=True,
             detach=True,
             passphrase=admin.password,
         )
         payload = {
-            "fingerprint": new_user.fingerprint,
+            "fingerprint": "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD",
             "signature": str(sig),
             "type": "USER",
         }
@@ -376,14 +376,14 @@ class TestHandler(unittest.TestCase):
         admin = self.admin_users[0]
         new_user = self.new_users[0]
         sig = self.admin_gpg.sign(
-            new_user.fingerprint.encode("UTF-8"),
+            "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD".encode("UTF-8"),
             keyid=admin.fingerprint,
             clearsign=True,
             detach=True,
             passphrase=admin.password,
         )
         payload = {
-            "fingerprint": new_user.fingerprint,
+            "fingerprint": "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD",
             "signature": str(sig),
             "type": "USER",
         }

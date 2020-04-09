@@ -73,6 +73,8 @@ run-postgres:
 		--rm \
 		-d \
 		-e POSTGRES_DB=mtls \
+		-e POSTGRES_PASSWORD=mtls \
+		-e POSTGRES_HOST_AUTH_METHOD=trust \
 		-p 5432:5432 \
 		postgres
 

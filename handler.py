@@ -251,7 +251,7 @@ class Handler:
 
     def has_user(self, gpg, fingerprint):
         keys = gpg.list_keys(keys=fingerprint)
-        if len(keys) is 0:
+        if len(keys) == 0:
             return False
         return True
 
