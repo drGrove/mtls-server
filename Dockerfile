@@ -1,4 +1,4 @@
-FROM python:3.7-slim-stretch as build-container
+FROM python:3.8.2-slim as build-container
 MAINTAINER Danny Grove <danny@drgrovellc.com>
 RUN apt update && \
   apt install -y gnupg openssl build-essential make sqlite3
