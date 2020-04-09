@@ -76,7 +76,7 @@ loss of access keys.
     make setup
     ```
 
-3. Run the server (This required docker)
+3. Run the server (This requires docker)
 
     ```shell
     make run-prod
