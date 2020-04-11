@@ -11,11 +11,12 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 import gnupg
 
+from key_refresh import KeyRefresh
 from logger import logger
 from storage import StorageEngine
 from storage import StorageEngineCertificateConflict
-from storage import UpdateCertException
 from storage import StorageEngineMissing
+from storage import UpdateCertException
 
 
 class CertProcessorKeyNotFoundError(Exception):
@@ -64,6 +65,11 @@ class CertProcessor:
         self.admin_gpg = gnupg.GPG(gnupghome=admin_gnupg_path)
         self.user_gpg.encoding = "utf-8"
         self.admin_gpg.encoding = "utf-8"
+
+        # Start Background threads for getting revoke/exipry from Keyserver
+        user_key_refesh = KeyRefresh(self.user_gpg, config)
+        admin_key_refresh = KeyRefresh(self.admin_gpg, config)
+
         if config.get("storage", "engine", fallback=None) is None:
             raise StorageEngineMissing()
         self.storage = StorageEngine(config)
