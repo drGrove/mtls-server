@@ -1,6 +1,8 @@
 import time
 import threading
 
+from logger import logger
+
 
 class KeyRefresh(object):
     def __init__(self, gnupg, config):
@@ -14,18 +16,17 @@ class KeyRefresh(object):
         self.thread = thread
 
     def run(self):
-        print("Attempting to run")
         while not self.paused:
             keyserver = self.config.get(
                 'gnupg',
                 'keyserver',
                 fallback='keyserver.ubuntu.com'
             )
-            print(f"Refreshing PGP Keys from {keyserver} for {self.gnupg.gnupghome}")
+            logger.info(f"Refreshing PGP Keys from {keyserver} for {self.gnupg.gnupghome}")
             current_keys = self.gnupg.list_keys()
             key_ids = list(map(lambda x: x['keyid'], current_keys))
             keys = self.gnupg.recv_keys(keyserver, *key_ids)
-            print(f"Refreshed {keys.count}/{len(current_keys)} from {keyserver}")
+            logger.info(f"Refreshed {keys.count}/{len(current_keys)} from {keyserver}")
             time.sleep(self.interval)
 
     def suspend(self):
