@@ -143,3 +143,20 @@ def get_config_from_file(file_name_or_path):
     config_path = get_abs_path(file_name_or_path)
     config.read(config_path)
     return config
+
+
+def import_and_trust(self, key_data, gpg):
+        """Imports a key into a given keyring and trust database as well as
+        properly trusting it for use.
+
+        Args:
+            key_data (str): The key data in ACSII or binary format.
+            gpg (gnupg.GPG): The gpg instance.
+
+        Returns:
+            str: The fingerprint of the newly imported and trusted key.
+        """
+        import_data = gpg.import_keys(key_data)
+        fingerprint = import_data.fingerprints[0]
+        gpg.trust_keys([fingerprint], "TRUST_ULTIMATE")
+        return fingerprint

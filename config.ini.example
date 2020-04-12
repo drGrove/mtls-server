@@ -12,8 +12,14 @@ issuer=My Company Name
 alternate_name=*.myname.com
 
 [gnupg]
+; Location of the folder that will house the user gnupg keys
 user=secrets/gnupg/
+; Location of the folder that with house the admin gnupg keys
 admin=secrets/gnupg_admin/
+; The interval with with to refresh keys from a keyserver
+; sync_interval=600
+; The keyserer to pull keys from
+; keyserver=keyserver.ubuntu.com
 
 [storage]
 engine=sqlite3
