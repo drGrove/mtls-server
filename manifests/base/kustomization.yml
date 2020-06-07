@@ -12,7 +12,7 @@ generatorOptions:
 configMapGenerator:
   - name: mtls
     files:
-      - files/config.ini
+      - ./files/config.ini
   - name: mtls-admin-seeds
     files: []
   - name: mtls-user-seeds
@@ -21,5 +21,5 @@ secretGenerator:
   - name: mtls-certs
     type: Opaque
     files:
-      - secrets/ca.crt
-      - secrets/ca.key
+      - ./secrets/ca.crt
+      - ./secrets/ca.key
