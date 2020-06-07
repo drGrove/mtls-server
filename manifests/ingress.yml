@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mtls
+  labels:
+    app.kubernetes.io/name: mtls
+spec:
+  tls:
+    - hosts:
+      - example.com
+      secretName: mtls-tls
+  rules:
+    - host: example.com
+      http:
+        paths:
+          - path: "/"
+            backend:
+              serviceName: mtls
+              servicePort: http

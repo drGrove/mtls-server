@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mtls
+resources:
+  - namespace.yml
+  - deployment.yml
+  - service.yml
+  - ingress.yml
+  - pvc.yml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: mtls
+    files:
+      - files/config.ini
+  - name: mtls-admin-seeds
+    files: []
+  - name: mtls-user-seeds
+    files: []
+secretGenerator:
+  - name: mtls-certs
+    type: Opaque
+    files:
+      - secrets/ca.crt
+      - secrets/ca.key
