@@ -1,7 +1,9 @@
 import os
 
+import gnupg
+
 from logger import logger
-from utils import get_config_from_file
+from utils import get_config_from_file, import_and_trust
 
 
 class Sync(object):
@@ -9,6 +11,21 @@ class Sync(object):
         if config is None:
             config = get_config_from_file("config.ini")
         self.config = config
+        user_gnupg_path = config.get("gnupg", "user")
+        admin_gnupg_path = config.get("gnupg", "admin")
+        if not os.path.isabs(user_gnupg_path):
+            user_gnupg_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), user_gnupg_path)
+            )
+        if not os.path.isabs(admin_gnupg_path):
+            admin_gnupg_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), admin_gnupg_path)
+            )
+
+        self.user_gpg = gnupg.GPG(gnupghome=user_gnupg_path)
+        self.admin_gpg = gnupg.GPG(gnupghome=admin_gnupg_path)
+        self.user_gpg.encoding = "utf-8"
+        self.admin_gpg.encoding = "utf-8"
 
     def seed(self):
         """Seeds the User and Admin trust databases."""
@@ -27,7 +44,7 @@ class Sync(object):
                                 gpg_data = str(gpg_data.read())
                                 if trust == "admin":
                                     import_and_trust(
-                                        gpg_data, self.cert_processor.admin_gpg
+                                        gpg_data, self.admin_gpg
                                     )
                                 # If we add an admin, they're also a user,
                                 # so we can just pull the fingerprint once
@@ -36,7 +53,7 @@ class Sync(object):
                                 # that's fine since that assumption is already
                                 # made
                                 fingerprint = import_and_trust(
-                                    gpg_data, self.cert_processor.user_gpg
+                                    gpg_data, self.user_gpg
                                 )
                                 logger.info(
                                     "Added {fp} to {t} Store".format(

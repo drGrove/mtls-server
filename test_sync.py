@@ -1,18 +1,33 @@
-from configparser import ConfigParser
+import os
+import tempfile
+import unittest
 
+from configparser import ConfigParser
+import gnupg
+
+from handler import Handler
 from sync import Sync
+from utils import User
+from utils import gen_passwd
+from utils import gen_pgp_key
+from utils import generate_csr
+from utils import generate_key
 
 
 class TestSync(unittest.TestCase):
     def setUp(self):
         self.USER_GNUPGHOME = tempfile.TemporaryDirectory()
         self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.NEW_USER_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.NEW_ADMIN_GNUPGHOME = tempfile.TemporaryDirectory()
+        self.SEED_DIR = tempfile.TemporaryDirectory()
         self.config = ConfigParser()
         self.config.read_string(
             """
             [mtls]
             min_lifetime=60
             max_lifetime=0
+            seed_dir={seed_dir}
 
             [ca]
             key = secrets/certs/authority/RootCA.key
@@ -30,14 +45,26 @@ class TestSync(unittest.TestCase):
             [storage.sqlite3]
             db_path=:memory:
             """.format(
+                seed_dir=self.SEED_DIR.name,
                 user_gnupghome=self.USER_GNUPGHOME.name,
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
             )
         )
+        self.new_user_gpg = gnupg.GPG(gnupghome=self.NEW_USER_GNUPGHOME.name)
+        self.new_admin_gpg = gnupg.GPG(gnupghome=self.NEW_ADMIN_GNUPGHOME.name)
+        self.new_users = [
+            User("user@host", gen_passwd(), generate_key(), gpg=self.new_user_gpg)
+        ]
+        self.new_admins = [
+            User("admin@host", gen_passwd(), generate_key(), gpg=self.new_admin_gpg)
+        ]
 
     def tearDown(self):
         self.USER_GNUPGHOME.cleanup()
         self.ADMIN_GNUPGHOME.cleanup()
+        self.NEW_USER_GNUPGHOME.cleanup()
+        self.NEW_ADMIN_GNUPGHOME.cleanup()
+        self.SEED_DIR.cleanup()
 
     def test_seed_users(self):
         seed_subpath = "user"

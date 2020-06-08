@@ -145,7 +145,7 @@ def get_config_from_file(file_name_or_path):
     return config
 
 
-def import_and_trust(self, key_data, gpg):
+def import_and_trust(key_data, gpg):
         """Imports a key into a given keyring and trust database as well as
         properly trusting it for use.
 
