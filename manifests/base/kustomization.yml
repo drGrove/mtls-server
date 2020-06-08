@@ -7,8 +7,6 @@ resources:
   - service.yml
   - ingress.yml
   - pvc.yml
-generatorOptions:
-  disableNameSuffixHash: true
 configMapGenerator:
   - name: mtls
     files:
