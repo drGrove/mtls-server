@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mtls
+  labels:
+    app.kubernetes.io/name: mtls
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mtls
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mtls
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: mtls
+          image: "drgrove/mtls-server:v0.14.2"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FQDN
+              value: "example.com"
+            - name: PROTOCOL
+              value: "https"
+          ports:
+            - name: http
+              containerPort: 4000
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /home/mtls/config.ini
+              subPath: config.ini
+            - name: ca-creds
+              mountPath: /home/mtls/secrets/certs/authority
+              readOnly: false
+            - name: admin-seeds
+              mountPath: /tmp/seeds/admin
+            - name: persistence
+              mountPath: /home/mtls/database
+              subPath: database
+              readOnly: false
+            - name: persistence
+              mountPath: /home/mtls/secrets/gnupg/
+              subPath: "gnupg"
+              readOnly: false
+            - name: persistence
+              mountPath: /home/mtls/secrets/admin_gnupg/
+              subPath: "admin_gnupg"
+              readOnly: false
+          livenessProbe:
+            httpGet:
+              path: /version
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: http
+      volumes:
+        - name: config
+          configMap:
+            name: mtls
+            items:
+              - key: config.ini
+                path: config.ini
+        - name: ca-creds
+          secret:
+            secretName: mtls-certs
+            items:
+              - key: ca.key
+                path: RootCA.key
+              - key: ca.crt
+                path: RootCA.pem
+        - name: admin-seeds
+          configMap:
+            name: mtls-admin-seeds
+        - name: persistence
+          persistentVolumeClaim:
+            claimName: mtls
