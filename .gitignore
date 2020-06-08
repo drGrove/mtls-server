@@ -1,8 +1,8 @@
-env
+/env
 *.pyc
-config.ini*
-!config.ini.example
-secrets
+/config.ini
+!/config.ini.example
+/secrets
 ~*
 *.sw[o|p]
 *.db
