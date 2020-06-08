@@ -3,6 +3,8 @@
 min_lifetime=60
 ; Maximum lifetime in seconds, if 0 it is disabled
 max_lifetime=0
+; The directory to pull gpg key seeds from
+; seed_dir=/tmp/seeds/
 
 [ca]
 key=secrets/certs/authority/RootCA.key
