@@ -106,6 +106,9 @@ class Handler:
         except CertProcessorNoPGPKeyFoundError:
             logger.info("PGP Key not found.")
             return error_response("Unauthorized", 401)
+        except Exception as e:
+            logger.critical(f"Unhandled Exception: {e}")
+            return error_response("Internal Server Error", 500)
 
     def revoke_cert(self, body):
         """

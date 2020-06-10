@@ -4,7 +4,7 @@ import logging
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(
     logging.Formatter(
-        '%(asctime)s: "%(filename)s" (line: %(lineno)d) - %(levelname)s ' + "%(message)s"
+        '%(asctime)s [pid: %(process)d|threadId: %(thread)d|threadName: %(threadName)s] "%(filename)s" (line: %(lineno)d) | %(levelname)s ' + "%(message)s"
     )
 )
 logger = logging.getLogger()

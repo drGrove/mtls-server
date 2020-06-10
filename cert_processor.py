@@ -67,8 +67,8 @@ class CertProcessor:
         self.admin_gpg.encoding = "utf-8"
 
         # Start Background threads for getting revoke/exipry from Keyserver
-        user_key_refesh = KeyRefresh(self.user_gpg, config)
-        admin_key_refresh = KeyRefresh(self.admin_gpg, config)
+        user_key_refesh = KeyRefresh('user_key_refresh', self.user_gpg, config)
+        admin_key_refresh = KeyRefresh('admin_key_refresh', self.admin_gpg, config)
 
         if config.get("storage", "engine", fallback=None) is None:
             raise StorageEngineMissing()
@@ -338,6 +338,7 @@ class CertProcessor:
         lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
         alts = []
         is_admin = self.is_admin(fingerprint)
+        logger.info(f"generate_cert: getting gpg key for {fingerprint}")
         user_gpg_key = self.get_gpg_key_by_fingerprint(fingerprint, is_admin)
         if user_gpg_key is None:
             raise CertProcessorNoPGPKeyFoundError()
@@ -371,12 +372,15 @@ class CertProcessor:
         )
         cert = cert.add_extension(x509.CRLDistributionPoints([crl_dp]), critical=False)
 
+        logger.info(f"generate_cert: Signing certificate for {fingerprint}")
         cert = cert.sign(
             private_key=ca_pkey, algorithm=hashes.SHA256(), backend=default_backend()
         )
         try:
+            logger.info(f"generate_cert: saving certificate for {fingerprint}")
             self.storage.save_cert(cert, fingerprint)
         except StorageEngineCertificateConflict:
+            logger.info(f"generate_cert: updating certificate for {fingerprint}")
             cert = self.update_cert(csr, lifetime)
         return cert.public_bytes(serialization.Encoding.PEM)
 
