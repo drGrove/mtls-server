@@ -47,7 +47,7 @@ class Handler:
                     lifetime, min_lifetime
                 )
             )
-            error_response(
+            return error_response(
                 "lifetime must be greater than {} seconds".format(min_lifetime)
             )
         if max_lifetime != 0:
@@ -57,7 +57,7 @@ class Handler:
                         lifetime, max_lifetime
                     )
                 )
-                error_response(
+                return error_response(
                     "lifetime must be less than {} seconds".format(max_lifetime)
                 )
         csr_str = body["csr"]
@@ -65,9 +65,13 @@ class Handler:
         if csr is None:
             return error_response("Could not load CSR")
         try:
+            logger.info("create_cert: get csr_public_bytes")
             csr_public_bytes = csr.public_bytes(serialization.Encoding.PEM)
+            logger.info("create_cert: write to temp sig file")
             sig_path = write_sig_to_file(body["signature"])
+            logger.info("create_cert: get fingerprint")
             fingerprint = self.cert_processor.verify(csr_public_bytes, sig_path)
+            logger.info("create_cert: remove sig file")
             os.remove(sig_path)
         except CertProcessorUntrustedSignatureError as e:
             logger.info("Unauthorized: {}".format(e))
@@ -75,12 +79,17 @@ class Handler:
         except CertProcessorInvalidSignatureError:
             logger.info("Invalid signature in CSR.")
             return error_response("Invalid signature", 401)
+        except Exception as e:
+            logger.critical("Unknown Error: {}".format(e))
+            return error_response("Internal Server Error", 500)
         if csr is None:
             logger.info("Invalid CSR.")
             return error_response("Invalid CSR")
         cert = None
         try:
+            logger.info(f"create_cert: generating certificate for: {fingerprint}")
             cert = self.cert_processor.generate_cert(csr, lifetime, fingerprint)
+            logger.info(f"create_cert: sending certificate to client for: {fingerprint}")
             return json.dumps({"cert": cert.decode("UTF-8")}), 200
         except CertProcessorKeyNotFoundError:
             logger.critical("Key missing. Service not properly initialized")
