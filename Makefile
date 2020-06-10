@@ -88,6 +88,7 @@ run-prod: build-image run-postgres
 		--rm \
 		-d \
 		-v $(PWD)/secrets/gnupg:/home/mtls/secrets/gnupg \
+		-v $(PWD)/secrets/gnupg_admin:/home/mtls/secrets/gnupg_admin \
 		-v $(PWD)/secrets/certs/authority:/home/mtls/secrets/certs/authority \
 		-v $(PWD)/config.ini:/home/mtls/config.ini \
 		$(DOCKER_REGISTRY)mtls-server:$(TAG)
