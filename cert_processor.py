@@ -17,6 +17,7 @@ from storage import StorageEngine
 from storage import StorageEngineCertificateConflict
 from storage import StorageEngineMissing
 from storage import UpdateCertException
+from utils import create_dir_if_missing
 
 
 class CertProcessorKeyNotFoundError(Exception):
@@ -60,6 +61,9 @@ class CertProcessor:
             admin_gnupg_path = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), admin_gnupg_path)
             )
+
+        create_dir_if_missing(user_gnupg_path)
+        create_dir_if_missing(admin_gnupg_path)
 
         self.user_gpg = gnupg.GPG(gnupghome=user_gnupg_path)
         self.admin_gpg = gnupg.GPG(gnupghome=admin_gnupg_path)
