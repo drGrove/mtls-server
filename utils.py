@@ -160,3 +160,7 @@ def import_and_trust(key_data, gpg):
         fingerprint = import_data.fingerprints[0]
         gpg.trust_keys([fingerprint], "TRUST_ULTIMATE")
         return fingerprint
+
+def create_dir_if_missing(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
