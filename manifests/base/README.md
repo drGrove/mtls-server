@@ -78,3 +78,5 @@ metadata:
   annotations:
     kustomize.config.k8s.io/behavior: replace
 ```
+
+[ksops]: https://github.com/viaduct-ai/kustomize-sops
