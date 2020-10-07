@@ -41,6 +41,7 @@ loss of access keys.
 | PROTOCOL        | The protocol the server runs as | http       |
 | FQDN            | The Fully Qualified Domain Name | localhost  |
 | CA_KEY_PASSWORD | The password for the CA Key     |            |
+| SEED_ON_INIT    | Seed gpg trust store on init    | `1`        |
 
 ### config.ini ###
 

@@ -33,7 +33,9 @@ class Handler:
             config = get_config_from_file("config.ini")
         self.config = config
         # Seed the trust stores
-        Sync(self.config).seed()
+        seed = os.environ.get('SEED_ON_INIT', "1")
+        if seed == "1":
+            Sync(self.config).seed()
         self.cert_processor = CertProcessor(config)
 
     def create_cert(self, body):
