@@ -7,3 +7,5 @@
 *.sw[o|p]
 *.db
 *.coverage
+/.eggs
+/mtls_server.egg-info
