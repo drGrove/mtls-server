@@ -70,7 +70,7 @@ class CertProcessor:
         self.user_gpg.encoding = "utf-8"
         self.admin_gpg.encoding = "utf-8"
 
-        # Start Background threads for getting revoke/exipry from Keyserver
+        # Start Background threads for getting revoke/expiry from Keyserver
         user_key_refesh = KeyRefresh('user_key_refresh', self.user_gpg, config)
         admin_key_refresh = KeyRefresh('admin_key_refresh', self.admin_gpg, config)
 
