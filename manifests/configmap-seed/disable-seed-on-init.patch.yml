@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mtls
+spec:
+  template:
+    spec:
+      containers:
+        - name: mtls
+          env:
+            - name: SEED_ON_INIT
+              value: "0"

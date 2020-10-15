@@ -23,3 +23,7 @@ secretGenerator:
     files:
       - ./secrets/ca.crt
       - ./secrets/ca.key
+images:
+  - name: drgrove/mtls-server
+    newTag: v0.17.0
+    digest: sha256:9cb6336a7986eb4c2c3ef54b1fb499c7a67f9b0781a88e9cc3db45a146937f1b

@@ -3,7 +3,7 @@
 The included files are the base resources necessary to run an MTLS server in kubernetes. There are a few items missing
 that you will need to patch in yourself for this to actually work.
 
-Create a kustome folder for deployment and add the following configuration and customize for your needs.
+Create a kustomize folder for deployment and add the following configuration and customize for your needs.
 
 `kustomization.yml`
 ```
@@ -12,6 +12,8 @@ kind: Kustomization
 namespace: mtls
 resources:
   - github.com/drGrove/mtls-server/kustomize?ref=<hash>
+patches:
+  - update-deployment-fqdn.patch.yaml
 generatorOptions:
   disableNameSuffixHash: true
 configMapGenerator:
@@ -49,6 +51,22 @@ patchesJson6902:
       - op: replace
         path: "/spec/template/spec/containers/0/env/0/value"
         value: "certauth.<YOUR_DOMAIN>"
+```
+
+`update-deployment-fqdn.patch.yaml`
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mtls
+spec:
+  template:
+    spec:
+      containers:
+        - name: mtls
+          env:
+            - name: FQDN
+              value: "certauth.<YOUR_DOMAIN>"
 ```
 
 NOTE: If you decide to use something like [ksops][ksops] for your secret management or want to use a generator, you need
