@@ -1,7 +1,7 @@
--i https://pypi.org/simple
-cffi==1.14.0
-click==7.1.1
-cryptography==2.9
+-i https://pypi.org/simple/
+cffi==1.14.3
+click==7.1.2
+cryptography==3.2
 flask==1.1.2
 itsdangerous==1.1.0
 jinja2==2.11.1
@@ -9,6 +9,6 @@ markupsafe==1.1.1
 psycopg2-binary==2.8.5
 pycparser==2.20
 python-gnupg==0.4.5
-six==1.14.0
+six==1.15.0
 uwsgi==2.0.18
 werkzeug==1.0.1
