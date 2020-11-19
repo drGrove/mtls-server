@@ -134,8 +134,10 @@ def write_sig_to_file(sig_str):
 def get_abs_path(path):
     """Gets the absolute path given a path."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    if not os.path.isabs(path):
-        return os.path.abspath(os.path.join(dir_path, path))
+    if os.path.isabs(path):
+        return path
+
+    return os.path.abspath(os.path.join(dir_path, path))
 
 
 def get_config_from_file(file_name_or_path):

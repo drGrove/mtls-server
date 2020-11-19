@@ -5,13 +5,13 @@ import unittest
 from configparser import ConfigParser
 import gnupg
 
-from handler import Handler
-from sync import Sync
-from utils import User
-from utils import gen_passwd
-from utils import gen_pgp_key
-from utils import generate_csr
-from utils import generate_key
+from mtls_server.handler import Handler
+from mtls_server.sync import Sync
+from mtls_server.utils import User
+from mtls_server.utils import gen_passwd
+from mtls_server.utils import gen_pgp_key
+from mtls_server.utils import generate_csr
+from mtls_server.utils import generate_key
 
 
 class TestSync(unittest.TestCase):

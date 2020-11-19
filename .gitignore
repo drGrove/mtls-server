@@ -3,6 +3,9 @@
 /config.ini
 !/config.ini.example
 /secrets
+/build
+/dist
+__pycache__
 ~*
 *.sw[o|p]
 *.db

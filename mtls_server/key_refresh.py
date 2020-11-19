@@ -1,7 +1,7 @@
 import time
 import threading
 
-from logger import logger
+from .logger import logger
 
 
 class KeyRefresh(object):

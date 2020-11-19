@@ -9,18 +9,18 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from cert_processor import CertProcessor
-from cert_processor import CertProcessorInvalidSignatureError
-from cert_processor import CertProcessorKeyNotFoundError
-from cert_processor import CertProcessorMismatchedPublicKeyError
-from cert_processor import CertProcessorUntrustedSignatureError
-from cert_processor import CertProcessorNotAdminUserError
-from cert_processor import CertProcessorNoPGPKeyFoundError
-from logger import logger
-from sync import Sync
-from utils import error_response
-from utils import write_sig_to_file
-from utils import get_config_from_file
+from .cert_processor import CertProcessor
+from .cert_processor import CertProcessorInvalidSignatureError
+from .cert_processor import CertProcessorKeyNotFoundError
+from .cert_processor import CertProcessorMismatchedPublicKeyError
+from .cert_processor import CertProcessorUntrustedSignatureError
+from .cert_processor import CertProcessorNotAdminUserError
+from .cert_processor import CertProcessorNoPGPKeyFoundError
+from .logger import logger
+from .sync import Sync
+from .utils import error_response
+from .utils import write_sig_to_file
+from .utils import get_config_from_file
 
 
 class GPGKeyNotFoundException(Exception):

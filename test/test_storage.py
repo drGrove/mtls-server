@@ -10,8 +10,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-import storage
-from cert_processor import CertProcessorMismatchedPublicKeyError
+from mtls_server.cert_processor import CertProcessorMismatchedPublicKeyError
+from mtls_server import storage
 
 
 logging.disable(logging.CRITICAL)

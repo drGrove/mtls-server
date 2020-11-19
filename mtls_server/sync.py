@@ -2,8 +2,8 @@ import os
 
 import gnupg
 
-from logger import logger
-from utils import get_config_from_file, import_and_trust, create_dir_if_missing
+from .logger import logger
+from .utils import get_config_from_file, import_and_trust, create_dir_if_missing
 
 
 class Sync(object):

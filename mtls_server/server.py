@@ -6,13 +6,13 @@ from cryptography.hazmat.primitives import serialization
 from flask import Flask
 from flask import request
 
-from cert_processor import CertProcessor
-from cert_processor import CertProcessorKeyNotFoundError
-from cert_processor import CertProcessorInvalidSignatureError
-from cert_processor import CertProcessorUntrustedSignatureError
-from handler import Handler
-from logger import logger
-from utils import get_config_from_file
+from .cert_processor import CertProcessor
+from .cert_processor import CertProcessorKeyNotFoundError
+from .cert_processor import CertProcessorInvalidSignatureError
+from .cert_processor import CertProcessorUntrustedSignatureError
+from .handler import Handler
+from .logger import logger
+from .utils import get_config_from_file
 
 __author__ = "Danny Grove <danny@drgrovellc.com>"
 
@@ -22,6 +22,11 @@ handler = None
 
 def create_app(config=None):
     app = Flask(__name__)
+
+    if config is None:
+        config_path = os.environ.get("CONFIG_PATH", "../config.ini")
+        config = get_config_from_file(config_path)
+
     handler = Handler(config)
 
     with open("VERSION", "r") as f:
@@ -76,12 +81,12 @@ def create_app(config=None):
 
     return app
 
-
-if __name__ == "__main__":
-    config_path = os.getenv("CONFIG_PATH", None)
-    if config_path:
-        config = get_config_from_file(config_path)
-    else:
-        config = get_config_from_file("config.ini")
+def main():
+    config_path = os.environ.get("CONFIG_PATH", "../config.ini")
+    config = get_config_from_file(config_path)
     app = create_app(config)
     app.run(port=config.get("mtls", "port", fallback=4000))
+
+
+if __name__ == "__main__":
+    main()

@@ -4,7 +4,7 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.serialization import Encoding
 
-from logger import logger
+from .logger import logger
 
 
 class StorageEngineCertificateConflict(Exception):

@@ -40,25 +40,35 @@ coverage:
 coveralls:
 	@$(PIP_ENV)/bin/coveralls
 
+.PHONY: test
 test:
 ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	-@$(PIP_ENV)/bin/coverage run -m unittest -v
+	-@coverage run -m unittest -v
 ifeq "${CI}" ""
 		@docker stop mtls-postgres
 endif
 
+.PHONY: test.dev
+test.dev:
+	pipenv run $(MAKE) test
+
+.PHONY: test-by-name
 test-by-name:
 ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	-@$(PIP_ENV)/bin/coverage run -m unittest $(TEST) -v
+	-@coverage run -m unittest $(NAME) -v
 ifeq "${CI}" ""
 		@docker stop mtls-postgres
 endif
+
+.PHONY: test-by-name.dev
+test-by-name.dev:
+	pipenv run $(MAKE) test-by-name
 
 build-image:
 	@docker build -t mtls-server:$(TAG) .

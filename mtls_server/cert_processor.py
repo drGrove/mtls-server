@@ -11,13 +11,13 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 import gnupg
 
-from key_refresh import KeyRefresh
-from logger import logger
-from storage import StorageEngine
-from storage import StorageEngineCertificateConflict
-from storage import StorageEngineMissing
-from storage import UpdateCertException
-from utils import create_dir_if_missing
+from .key_refresh import KeyRefresh
+from .logger import logger
+from .storage import StorageEngine
+from .storage import StorageEngineCertificateConflict
+from .storage import StorageEngineMissing
+from .storage import UpdateCertException
+from .utils import create_dir_if_missing
 
 
 class CertProcessorKeyNotFoundError(Exception):
