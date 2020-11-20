@@ -1,42 +1,52 @@
-.PHONY: setup clean lint create-ca build-image tag-image
 SHELL := /bin/bash
 DOCKER_REGISTRY ?= ""
 TAG ?= latest
 
 PIP_ENV := $(shell pipenv --venv)
 
+.PHONY: setup
 setup:
 	@pipenv install
 
+.PHONY: setup-dev
 setup-dev: set-hooks gen-secrets-folder
 	@pipenv install --dev
 
-pipenv-lock:
+.PHONY: requirements.txt
+requirements.txt:
 	@pipenv update
 	@pipenv lock -r > requirements.txt
 
+.PHONY: set-hooks
 set-hooks:
 	@echo "Setting commit hooks"
 	@ ([ ! -L ".git/hooks/pre-commit" ] && ln -s $(PWD)/scripts/git-hooks/pre-commit.sh .git/hooks/pre-commit) || true
 
+.PHONY: gen-secrets-folder
 gen-secrets-folder:
 	@./scripts/gen-secrets-folder
 
+.PHONY: create-ca
 create-ca: gen-secrets-folder
 	@$(PIP_ENV)/bin/python3 ./scripts/create-ca
 
+.PHONY: create-pgp-key
 create-pgp-key: gen-secrets-folder
 	@./scripts/gen-gnupg-key
 
+.PHONY: format
 format:
 	@pipenv run black -l 90 ./*.py
 
+.PHONY: lint
 lint:
 	@pipenv run pycodestyle --max-line-length=90 ./*.py
 
+.PHONY: coverage
 coverage:
 	@$(PIP_ENV)/bin/coverage report -m
 
+.PHONY: coveralls
 coveralls:
 	@$(PIP_ENV)/bin/coveralls
 
@@ -70,13 +80,16 @@ endif
 test-by-name.dev:
 	pipenv run $(MAKE) test-by-name
 
+.PHONY: build-image
 build-image:
 	@docker build -t mtls-server:$(TAG) .
 
+.PHONY: tag-image
 tag-image: build-image
 	@docker tag mtls-server:$(TAG) $(DOCKER_REGISTRY)mtls-server:$(TAG)
 	@echo "Tagged image: $(DOCKER_REGISTRY)mtls-server:$(TAG)"
 
+.PHONY: run-postgres
 run-postgres:
 	@docker run \
 		--name mtls-postgres \
@@ -88,10 +101,12 @@ run-postgres:
 		-p 5432:5432 \
 		postgres
 
+.PHONY: run
 run:
 	@. $(PIP_ENV)/bin/activate
 	@$(PIP_ENV)/bin/python3 server.py
 
+.PHONY: run-prod
 run-prod: build-image run-postgres
 	@docker run \
 		--name mtls-server \
@@ -114,11 +129,12 @@ run-prod: build-image run-postgres
 		-v $(PWD)/nginx/html:/usr/share/nginx/ \
 		nginx
 
-
+.PHONY: stop-prod
 stop-prod:
 	@docker stop mtls-nginx
 	@docker stop mtls-server
 	@docker stop mtls-postgres
 
+.PHONY: clean
 clean:
 	@rm -r $(PIP_ENV)
