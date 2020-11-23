@@ -10,8 +10,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from mtls_server.cert_processor import CertProcessorMismatchedPublicKeyError
 from mtls_server import storage
+from mtls_server.cert_processor import CertProcessorMismatchedPublicKeyError
+from mtls_server.config import Config
 
 
 logging.disable(logging.CRITICAL)
@@ -126,8 +127,8 @@ class TestSQLiteStorageEngine(unittest.TestCase):
             db_path=:memory:
             """
         )
-
-        self.engine = storage.SQLiteStorageEngine(config)
+        Config.init_config(config=config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
@@ -253,8 +254,8 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
             host = localhost
             """
         )
-
-        self.engine = storage.PostgresqlStorageEngine(config)
+        Config.init_config(config=config)
+        self.engine = storage.PostgresqlStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()

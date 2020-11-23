@@ -16,9 +16,9 @@ from cryptography.x509.oid import NameOID
 import gnupg
 
 
-def generate_key():
+def generate_key(key_size=4096):
     return rsa.generate_private_key(
-        public_exponent=65537, key_size=4096, backend=default_backend()
+        public_exponent=65537, key_size=key_size, backend=default_backend()
     )
 
 
@@ -47,8 +47,12 @@ def generate_csr(key, common_name, email=None):
     )
 
 
-def gen_pgp_key(email, password, gpg):
-    input_data = gpg.gen_key_input(name_email=email, passphrase=password)
+def gen_pgp_key(email, password, gpg, key_size=1024):
+    input_data = gpg.gen_key_input(
+        name_email=email,
+        passphrase=password,
+        key_length=key_size
+    )
     return gpg.gen_key(input_data)
 
 
@@ -133,11 +137,10 @@ def write_sig_to_file(sig_str):
 
 def get_abs_path(path):
     """Gets the absolute path given a path."""
-    dir_path = os.path.dirname(os.path.realpath(__file__))
     if os.path.isabs(path):
         return path
 
-    return os.path.abspath(os.path.join(dir_path, path))
+    return os.path.abspath(os.path.join(os.getcwd(), path))
 
 
 def get_config_from_file(file_name_or_path):

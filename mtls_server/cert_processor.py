@@ -18,6 +18,7 @@ from .storage import StorageEngineCertificateConflict
 from .storage import StorageEngineMissing
 from .storage import UpdateCertException
 from .utils import create_dir_if_missing
+from .utils import get_abs_path
 
 
 class CertProcessorKeyNotFoundError(Exception):
@@ -51,16 +52,20 @@ class CertProcessor:
         Args:
             config (ConfigParser): a config as configparser.
         """
-        user_gnupg_path = config.get("gnupg", "user")
-        admin_gnupg_path = config.get("gnupg", "admin")
-        if not os.path.isabs(user_gnupg_path):
-            user_gnupg_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), user_gnupg_path)
+        user_gnupg_path = get_abs_path(
+            config.get(
+                "gnupg",
+                "user",
+                os.path.join(os.getcwd(),"secrets/gnupg")
             )
-        if not os.path.isabs(admin_gnupg_path):
-            admin_gnupg_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), admin_gnupg_path)
+        )
+        admin_gnupg_path = get_abs_path(
+            config.get(
+                "gnupg",
+                "admin",
+                os.path.join(os.getcwd(),"secrets/gnupg_admin")
             )
+        )
 
         create_dir_if_missing(user_gnupg_path)
         create_dir_if_missing(admin_gnupg_path)
@@ -74,15 +79,16 @@ class CertProcessor:
         user_key_refesh = KeyRefresh('user_key_refresh', self.user_gpg, config)
         admin_key_refresh = KeyRefresh('admin_key_refresh', self.admin_gpg, config)
 
-        if config.get("storage", "engine", fallback=None) is None:
+        if config.get("storage", "engine", None) is None:
             raise StorageEngineMissing()
+
         self.storage = StorageEngine(config)
         self.storage.init_db()
         self.config = config
         self.openssl_format = serialization.PrivateFormat.TraditionalOpenSSL
         self.no_encyption = serialization.NoEncryption()
-        self.SERVER_URL = os.environ.get("FQDN") or "localhost"
-        self.PROTOCOL = os.environ.get("PROTOCOL") or "http"
+        self.SERVER_URL = config.get("mtls", "fqdn", os.environ.get('FQDN', 'localhost'))
+        self.PROTOCOL = config.get('mtls', 'protocol', os.environ.get("PROTOCOL", 'http'))
 
     def verify(self, data, signature):
         """Verifies that the signed data is signed by a trusted key.
@@ -219,12 +225,7 @@ class CertProcessor:
         Returns:
             cryptography.x509.Certificate: CA Certificate
         """
-        ca_cert_path = self.config.get("ca", "cert")
-        if not os.path.isabs(ca_cert_path):
-            ca_cert_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), ca_cert_path)
-            )
-
+        ca_cert_path = get_abs_path(self.config.get("ca", "cert"))
         # Grab the CA Certificate from filesystem if it exists and return
         if os.path.isfile(ca_cert_path):
             with open(ca_cert_path, "rb") as cert_file:

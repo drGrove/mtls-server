@@ -19,6 +19,7 @@ from mtls_server.cert_processor import CertProcessor
 from mtls_server.cert_processor import CertProcessorInvalidSignatureError
 from mtls_server.cert_processor import CertProcessorKeyNotFoundError
 from mtls_server.cert_processor import CertProcessorUntrustedSignatureError
+from mtls_server.config import Config
 from mtls_server.handler import Handler
 from mtls_server.server import create_app
 from mtls_server.utils import User
@@ -65,8 +66,9 @@ class TestServer(unittest.TestCase):
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
             )
         )
+        Config.init_config(config=self.config)
         self.key = generate_key()
-        self.engine = storage.SQLiteStorageEngine(self.config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
@@ -75,7 +77,7 @@ class TestServer(unittest.TestCase):
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.invalid_gpg = gnupg.GPG(gnupghome=self.INVALID_GNUPGHOME.name)
         self.new_user_gpg = gnupg.GPG(gnupghome=self.NEW_USER_GNUPGHOME.name)
-        app = create_app(self.config)
+        app = create_app(Config)
         self.app = app.test_client()
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),

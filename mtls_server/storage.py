@@ -1,4 +1,5 @@
 import datetime
+import os
 
 from cryptography import x509
 from cryptography.x509.oid import NameOID
@@ -44,7 +45,11 @@ class SQLiteStorageEngine(SqlStorageEngine):
     def __init__(self, config):
         import sqlite3
 
-        db_path = config.get("storage.sqlite3", "db_path")
+        db_path = config.get(
+            "storage.sqlite3",
+            "db_path",
+            os.path.join(os.getcwd(), "mtls-server.db")
+        )
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
 
     def init_db(self):
@@ -203,8 +208,8 @@ class PostgresqlStorageEngine(SqlStorageEngine):
             dbname=config.get("storage.postgres", "database"),
             user=config.get("storage.postgres", "user"),
             password=config.get("storage.postgres", "password"),
-            host=config.get("storage.postgres", "host", fallback="localhost"),
-            port=config.get("storage.postgres", "port", fallback=5432),
+            host=config.get("storage.postgres", "host", "localhost"),
+            port=config.get_int("storage.postgres", "port", 5432),
         )
 
     def init_db(self):
@@ -367,7 +372,7 @@ class StorageEngine:
     """
 
     def __new__(cls, config):
-        engine = config.get("storage", "engine", fallback=None)
+        engine = config.get("storage", "engine", None)
         if engine is None:
             raise StorageEngineMissing()
         if engine == "sqlite3":

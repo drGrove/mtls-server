@@ -2,7 +2,7 @@
 *.pyc
 /config.ini
 !/config.ini.example
-/secrets
+secrets
 /build
 /dist
 __pycache__

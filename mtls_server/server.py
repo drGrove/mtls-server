@@ -7,9 +7,10 @@ from flask import Flask
 from flask import request
 
 from .cert_processor import CertProcessor
-from .cert_processor import CertProcessorKeyNotFoundError
 from .cert_processor import CertProcessorInvalidSignatureError
+from .cert_processor import CertProcessorKeyNotFoundError
 from .cert_processor import CertProcessorUntrustedSignatureError
+from .config import Config
 from .handler import Handler
 from .logger import logger
 from .utils import get_config_from_file
@@ -18,16 +19,19 @@ __author__ = "Danny Grove <danny@drgrovellc.com>"
 
 app = None
 handler = None
+CONFIG_PATH = os.environ.get('CONFIG_PATH', os.path.join(os.getcwd(), "config.ini"))
 
 
 def create_app(config=None):
     app = Flask(__name__)
 
     if config is None:
-        config_path = os.environ.get("CONFIG_PATH", "../config.ini")
-        config = get_config_from_file(config_path)
+        Config.init_config(CONFIG_PATH)
 
-    handler = Handler(config)
+    # Set the CWD so that other areas can reference it.
+    Config.config.set('mtls', 'cwd', os.getcwd())
+
+    handler = Handler(Config)
 
     with open("VERSION", "r") as f:
         version = str(f.readline().strip())
@@ -66,7 +70,7 @@ def create_app(config=None):
         cert = handler.cert_processor.get_ca_cert()
         cert = cert.public_bytes(serialization.Encoding.PEM).decode("UTF-8")
         return (
-            json.dumps({"issuer": handler.config.get("ca", "issuer"), "cert": cert}),
+            json.dumps({"issuer": Config.get("ca", "issuer"), "cert": cert}),
             200,
         )
 
@@ -82,10 +86,8 @@ def create_app(config=None):
     return app
 
 def main():
-    config_path = os.environ.get("CONFIG_PATH", "../config.ini")
-    config = get_config_from_file(config_path)
-    app = create_app(config)
-    app.run(port=config.get("mtls", "port", fallback=4000))
+    app = create_app()
+    app.run(port=Config.get_int("mtls", "port", 4000))
 
 
 if __name__ == "__main__":

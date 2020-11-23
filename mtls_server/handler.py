@@ -1,5 +1,4 @@
 import os
-from configparser import ConfigParser
 import json
 
 from cryptography import x509
@@ -13,14 +12,13 @@ from .cert_processor import CertProcessor
 from .cert_processor import CertProcessorInvalidSignatureError
 from .cert_processor import CertProcessorKeyNotFoundError
 from .cert_processor import CertProcessorMismatchedPublicKeyError
-from .cert_processor import CertProcessorUntrustedSignatureError
-from .cert_processor import CertProcessorNotAdminUserError
 from .cert_processor import CertProcessorNoPGPKeyFoundError
+from .cert_processor import CertProcessorNotAdminUserError
+from .cert_processor import CertProcessorUntrustedSignatureError
 from .logger import logger
 from .sync import Sync
 from .utils import error_response
 from .utils import write_sig_to_file
-from .utils import get_config_from_file
 
 
 class GPGKeyNotFoundException(Exception):
@@ -28,39 +26,31 @@ class GPGKeyNotFoundException(Exception):
 
 
 class Handler:
-    def __init__(self, config=None):
-        if config is None:
-            config = get_config_from_file("config.ini")
-        self.config = config
+    def __init__(self, config):
         # Seed the trust stores
         seed = os.environ.get('SEED_ON_INIT', "1")
         if seed == "1":
-            Sync(self.config).seed()
+            Sync(config).seed()
         self.cert_processor = CertProcessor(config)
+        self.config = config
 
     def create_cert(self, body):
         """Create a certificate."""
         lifetime = int(body["lifetime"])
-        min_lifetime = int(self.config.get("mtls", "min_lifetime", fallback=60))
-        max_lifetime = int(self.config.get("mtls", "max_lifetime", fallback=0))
+        min_lifetime = self.config.get_int("mtls", "min_lifetime", 60)
+        max_lifetime = self.config.get_int("mtls", "max_lifetime", 0)
         if lifetime < min_lifetime:
             logger.info(
-                "User requested lifetime less than minimum. {} < {}".format(
-                    lifetime, min_lifetime
-                )
+                f"User requested lifetime less than minimum. {lifetime} < {min_lifetime}"
             )
-            return error_response(
-                "lifetime must be greater than {} seconds".format(min_lifetime)
-            )
+            return error_response(f"lifetime must be greater than {min_lifetime} seconds")
         if max_lifetime != 0:
             if lifetime > max_lifetime:
                 logger.info(
-                    "User requested lifetime greater than maximum. {} < {}".format(
-                        lifetime, max_lifetime
-                    )
+                    f"User requested lifetime greater than maximum. {lifetime} < {max_lifetime}"
                 )
                 return error_response(
-                    "lifetime must be less than {} seconds".format(max_lifetime)
+                    f"lifetime must be less than {max_lifetime} seconds"
                 )
         csr_str = body["csr"]
         csr = self.cert_processor.get_csr(csr_str)
@@ -132,9 +122,7 @@ class Handler:
             )
             is_admin = True
             logger.info(
-                "Admin {adminfp} revoking certificate with query {query}".format(
-                    adminfp=fingerprint, query=json.dumps(body["query"])
-                )
+                f"Admin {fingerprint} revoking certificate with query {json.dumps(body['query'])}"
             )
             os.remove(sig_path)
         except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
@@ -191,9 +179,7 @@ class Handler:
                 has_user = self.has_user(self.cert_processor.admin_gpg, fingerprint)
                 if not has_user:
                     logger.info(
-                        "Admin {adminfp} adding admin user {userfp}".format(
-                            adminfp=fingerprint, userfp=body["fingerprint"]
-                        )
+                        "Admin {fingerprint} adding admin user {body['fingerprint']}"
                     )
                     # Add a user to the admin trust store
                     self.add_and_trust_user(self.cert_processor.admin_gpg, fingerprint)
@@ -223,7 +209,7 @@ class Handler:
 
     def add_and_trust_user(self, gpg, fingerprint):
         result = self.cert_processor.user_gpg.recv_keys(
-            self.config.get("gnupg", "keyserver", fallback="keyserver.ubuntu.com"),
+            self.config.get("gnupg", "keyserver", "keyserver.ubuntu.com"),
             fingerprint,
         )
         if result.count is None or result.count == 0:
@@ -245,11 +231,7 @@ class Handler:
             )
         except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
             os.remove(sig_path)
-            logger.error(
-                "Invalid signature on adding fingerprint: {fp}".format(
-                    fp=body["fingerprint"]
-                )
-            )
+            logger.error(f"Invalid signature on adding fingerprint: {body['fingerprint']}")
             return error_response("Unauthorized", 403)
         # Remove signature file
         os.remove(sig_path)

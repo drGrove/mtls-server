@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 import os
 import tempfile
 import unittest
@@ -6,12 +7,14 @@ import unittest
 from mtls_server.utils import create_dir_if_missing
 from mtls_server.utils import get_abs_path
 
+logging.disable(logging.CRITICAL)
+
 
 class TestUtils(unittest.TestCase):
     def test_get_abs_path_from_relative(self):
         cur = Path(os.path.realpath(__file__))
         expected = f"{cur.parent.parent}/config.ini"
-        self.assertEqual(get_abs_path("../config.ini"), expected)
+        self.assertEqual(get_abs_path("./config.ini"), expected)
 
     def test_get_abs_path_from_abs(self):
         cur = Path(os.path.realpath(__file__))

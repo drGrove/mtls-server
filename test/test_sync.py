@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 import unittest
@@ -6,6 +7,7 @@ from configparser import ConfigParser
 import gnupg
 
 from mtls_server.handler import Handler
+from mtls_server.config import Config
 from mtls_server.sync import Sync
 from mtls_server.utils import User
 from mtls_server.utils import gen_passwd
@@ -13,6 +15,7 @@ from mtls_server.utils import gen_pgp_key
 from mtls_server.utils import generate_csr
 from mtls_server.utils import generate_key
 
+logging.disable(logging.CRITICAL)
 
 class TestSync(unittest.TestCase):
     def setUp(self):
@@ -50,6 +53,7 @@ class TestSync(unittest.TestCase):
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
             )
         )
+        Config.init_config(config=self.config)
         self.new_user_gpg = gnupg.GPG(gnupghome=self.NEW_USER_GNUPGHOME.name)
         self.new_admin_gpg = gnupg.GPG(gnupghome=self.NEW_ADMIN_GNUPGHOME.name)
         self.new_users = [
@@ -77,7 +81,7 @@ class TestSync(unittest.TestCase):
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(self.config)
+        handler = Handler(Config)
         user_gpg = handler.cert_processor.user_gpg
         stored_fingerprints = []
         for key in user_gpg.list_keys():
@@ -96,7 +100,7 @@ class TestSync(unittest.TestCase):
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(self.config)
+        handler = Handler(Config)
         admin_gpg = handler.cert_processor.admin_gpg
         stored_fingerprints = []
         for key in admin_gpg.list_keys():
@@ -123,7 +127,7 @@ class TestSync(unittest.TestCase):
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(self.config)
+        handler = Handler(Config)
         user_gpg = handler.cert_processor.user_gpg
         admin_gpg = handler.cert_processor.admin_gpg
         user_stored_fingerprints = []

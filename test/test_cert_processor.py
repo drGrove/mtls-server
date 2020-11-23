@@ -21,11 +21,13 @@ from mtls_server import storage
 from mtls_server.cert_processor import CertProcessor
 from mtls_server.cert_processor import CertProcessorInvalidSignatureError
 from mtls_server.cert_processor import CertProcessorKeyNotFoundError
+from mtls_server.config import Config
 from mtls_server.utils import User
 from mtls_server.utils import gen_passwd
 from mtls_server.utils import gen_pgp_key
 from mtls_server.utils import generate_csr
 from mtls_server.utils import generate_key
+from mtls_server.utils import get_abs_path
 
 
 logging.disable(logging.CRITICAL)
@@ -212,14 +214,15 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
             )
         )
+        Config.init_config(config=config)
         self.common_name = "user@host"
         self.key = generate_key()
-        self.engine = storage.SQLiteStorageEngine(config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(config)
+        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
@@ -297,15 +300,16 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
             )
         )
+        Config.init_config(config=config)
         self.common_name = "user@host"
         self.key = generate_key()
-        self.engine = storage.PostgresqlStorageEngine(config)
+        self.engine = storage.PostgresqlStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
 
-        self.cert_processor = CertProcessor(config)
+        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
@@ -387,7 +391,8 @@ class TestCertProcessorMissingStorage(TestCertProcessorBase):
 
     def test_missing_storage(self):
         with self.assertRaises(storage.StorageEngineMissing):
-            self.cert_processor = CertProcessor(self.config)
+            Config.init_config(config=self.config)
+            self.cert_processor = CertProcessor(Config)
 
 
 class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
@@ -398,8 +403,8 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
         self.USER_GNUPGHOME = tempfile.TemporaryDirectory(prefix=prefix)
         self.ADMIN_GNUPGHOME = tempfile.TemporaryDirectory(prefix=prefix)
 
-        relative_user = ".." + self.USER_GNUPGHOME.name.split(dir_path)[1]
-        relative_admin = ".." + self.ADMIN_GNUPGHOME.name.split(dir_path)[1]
+        relative_user = "." + self.USER_GNUPGHOME.name.split(dir_path)[1]
+        relative_admin = "." + self.ADMIN_GNUPGHOME.name.split(dir_path)[1]
         config = ConfigParser()
         config.read_string(
             """
@@ -422,14 +427,15 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
                 user_gnupghome=relative_user, admin_gnupghome=relative_admin
             )
         )
+        Config.init_config(config=config)
         self.common_name = "user@host"
         self.key = generate_key()
-        self.engine = storage.SQLiteStorageEngine(config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(config)
+        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
@@ -506,14 +512,15 @@ class TestCertProcessorPasswordCAKey(TestCertProcessorBase):
                 authority_folder=self.AUTHORITY_FOLDER.name,
             )
         )
+        Config.init_config(config=config)
         self.common_name = "user@host"
         self.key = generate_key()
-        self.engine = storage.SQLiteStorageEngine(config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(config)
+        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
@@ -588,14 +595,15 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
                 authority_folder=self.AUTHORITY_FOLDER.name,
             )
         )
+        Config.init_config(config=config)
         self.common_name = "user@host"
         self.key = generate_key()
-        self.engine = storage.SQLiteStorageEngine(config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(config)
+        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [

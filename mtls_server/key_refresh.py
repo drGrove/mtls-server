@@ -8,7 +8,7 @@ class KeyRefresh(object):
     def __init__(self, name, gnupg, config):
         logger.info(f"KeyRefresh: init background thread for {name}")
         self.name = name
-        self.interval = int(config.get('gnupg', 'sync_interval', fallback=600))
+        self.interval = config.get_int('gnupg', 'sync_interval', 600)
         self.gnupg = gnupg
         self.config = config
         self.paused = False
@@ -20,11 +20,7 @@ class KeyRefresh(object):
     def run(self):
         logger.info(f"KeyRefresh: {self.name} | run loop")
         while not self.paused:
-            keyserver = self.config.get(
-                'gnupg',
-                'keyserver',
-                fallback='keyserver.ubuntu.com'
-            )
+            keyserver = self.config.get('gnupg', 'keyserver', 'keyserver.ubuntu.com')
             logger.info(f"KeyRefresh: {self.name} | Refreshing PGP Keys from {keyserver} for {self.gnupg.gnupghome}")
             current_keys = self.gnupg.list_keys()
             key_ids = list(map(lambda x: x['keyid'], current_keys))
