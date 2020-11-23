@@ -16,7 +16,6 @@ from .logger import logger
 from .storage import StorageEngine
 from .storage import StorageEngineCertificateConflict
 from .storage import StorageEngineMissing
-from .storage import UpdateCertException
 from .utils import create_dir_if_missing
 from .utils import get_abs_path
 
@@ -56,14 +55,14 @@ class CertProcessor:
             config.get(
                 "gnupg",
                 "user",
-                os.path.join(os.getcwd(),"secrets/gnupg")
+                os.path.join(os.getcwd(), "secrets/gnupg")
             )
         )
         admin_gnupg_path = get_abs_path(
             config.get(
                 "gnupg",
                 "admin",
-                os.path.join(os.getcwd(),"secrets/gnupg_admin")
+                os.path.join(os.getcwd(), "secrets/gnupg_admin")
             )
         )
 
@@ -76,8 +75,8 @@ class CertProcessor:
         self.admin_gpg.encoding = "utf-8"
 
         # Start Background threads for getting revoke/expiry from Keyserver
-        user_key_refesh = KeyRefresh('user_key_refresh', self.user_gpg, config)
-        admin_key_refresh = KeyRefresh('admin_key_refresh', self.admin_gpg, config)
+        KeyRefresh('user_key_refresh', self.user_gpg, config)
+        KeyRefresh('admin_key_refresh', self.admin_gpg, config)
 
         if config.get("storage", "engine", None) is None:
             raise StorageEngineMissing()
@@ -192,25 +191,29 @@ class CertProcessor:
                     key_file.read(), password=pw, backend=default_backend()
                 )
                 return ca_key
-        except (ValueError, FileNotFoundError) as e:
+        except (ValueError, FileNotFoundError):
             logger.error("Error opening file: {}".format(ca_key_path))
             logger.info("Generating new root key...")
             key = rsa.generate_private_key(
                 public_exponent=65537, key_size=4096, backend=default_backend()
             )
+
             if os.environ.get("CA_KEY_PASSWORD"):
                 encryption_algorithm = serialization.BestAvailableEncryption(
                     os.environ.get("CA_KEY_PASSWORD").encode("UTF-8")
                 )
             else:
                 encryption_algorithm = self.no_encyption
+
             key_data = key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=self.openssl_format,
                 encryption_algorithm=encryption_algorithm,
             )
+
             with open(ca_key_path, "wb") as f:
                 f.write(key_data)
+
             return key
 
     def get_ca_cert(self, key=None):

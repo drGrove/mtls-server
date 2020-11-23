@@ -1,7 +1,6 @@
 import datetime
 import os
 
-from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.serialization import Encoding
 
@@ -139,7 +138,6 @@ class SQLiteStorageEngine(SqlStorageEngine):
         self, serial_number=None, common_name=None, fingerprint=None, show_revoked=False
     ):
         cur = self.conn.cursor()
-        key = None
         value = None
         query = "SELECT cert FROM certs WHERE"
         if serial_number is not None:

@@ -1,33 +1,18 @@
-import datetime
 import json
 import logging
 import tempfile
 import unittest
 
 from configparser import ConfigParser
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.backends import openssl
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
 import gnupg
 
 from mtls_server import storage
-from mtls_server.cert_processor import CertProcessor
-from mtls_server.cert_processor import CertProcessorInvalidSignatureError
-from mtls_server.cert_processor import CertProcessorKeyNotFoundError
-from mtls_server.cert_processor import CertProcessorUntrustedSignatureError
 from mtls_server.config import Config
-from mtls_server.handler import Handler
 from mtls_server.server import create_app
 from mtls_server.utils import User
 from mtls_server.utils import gen_passwd
-from mtls_server.utils import gen_pgp_key
-from mtls_server.utils import generate_csr
 from mtls_server.utils import generate_key
-from mtls_server.utils import get_abs_path
 
 
 logging.disable(logging.CRITICAL)

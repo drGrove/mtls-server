@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 import os
 import json
 
@@ -6,14 +5,9 @@ from cryptography.hazmat.primitives import serialization
 from flask import Flask
 from flask import request
 
-from .cert_processor import CertProcessor
-from .cert_processor import CertProcessorInvalidSignatureError
 from .cert_processor import CertProcessorKeyNotFoundError
-from .cert_processor import CertProcessorUntrustedSignatureError
 from .config import Config
 from .handler import Handler
-from .logger import logger
-from .utils import get_config_from_file
 
 __author__ = "Danny Grove <danny@drgrovellc.com>"
 
@@ -38,12 +32,12 @@ def create_app(config=None):
 
     # This will generate a CA Certificate and Key if one does not exist
     try:
-        cert = handler.cert_processor.get_ca_cert()
+        handler.cert_processor.get_ca_cert()
     except CertProcessorKeyNotFoundError:
         # Auto-gen a new key and cert if one is not presented and this is the
         # first call ever made to the handler
         key = handler.cert_processor.get_ca_key()
-        cert = handler.cert_processor.get_ca_cert(key)
+        handler.cert_processor.get_ca_cert(key)
 
     @app.route("/", methods=["POST"])
     def create_handler():
@@ -84,6 +78,7 @@ def create_app(config=None):
         return json.dumps({"version": version}), 200
 
     return app
+
 
 def main():
     app = create_app()

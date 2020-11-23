@@ -1,7 +1,5 @@
-import datetime
 import json
 import logging
-import os
 import tempfile
 import unittest
 
@@ -9,23 +7,16 @@ from configparser import ConfigParser
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends import openssl
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 import gnupg
 
 from mtls_server import storage
 from mtls_server.cert_processor import CertProcessor
-from mtls_server.cert_processor import CertProcessorInvalidSignatureError
-from mtls_server.cert_processor import CertProcessorKeyNotFoundError
-from mtls_server.cert_processor import CertProcessorUntrustedSignatureError
 from mtls_server.config import Config
 from mtls_server.handler import Handler
 from mtls_server.utils import User
 from mtls_server.utils import gen_passwd
-from mtls_server.utils import gen_pgp_key
-from mtls_server.utils import generate_csr
 from mtls_server.utils import generate_key
 
 
@@ -263,7 +254,6 @@ class TestHandler(unittest.TestCase):
 
     def test_add_user_valid_admin(self):
         admin = self.admin_users[0]
-        new_user = self.new_users[0]
         sig = self.admin_gpg.sign(
             "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD".encode("UTF-8"),
             keyid=admin.fingerprint,
@@ -299,7 +289,6 @@ class TestHandler(unittest.TestCase):
 
     def test_add_admin_valid_admin(self):
         admin = self.admin_users[0]
-        new_user = self.new_users[0]
         sig = self.admin_gpg.sign(
             "B10116B8193F2DBD",
             keyid=admin.fingerprint,
@@ -318,7 +307,6 @@ class TestHandler(unittest.TestCase):
 
     def test_add_admin_twice_valid_admin(self):
         admin = self.admin_users[0]
-        new_user = self.new_users[0]
         sig = self.admin_gpg.sign(
             "B10116B8193F2DBD",
             keyid=admin.fingerprint,
@@ -376,7 +364,6 @@ class TestHandler(unittest.TestCase):
 
     def test_remove_user_valid_admin(self):
         admin = self.admin_users[0]
-        new_user = self.new_users[0]
         sig = self.admin_gpg.sign(
             "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD".encode("UTF-8"),
             keyid=admin.fingerprint,

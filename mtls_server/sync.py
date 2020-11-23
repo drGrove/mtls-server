@@ -1,4 +1,3 @@
-from pathlib import Path
 import os
 
 import gnupg
@@ -6,7 +5,6 @@ import gnupg
 from .logger import logger
 from .utils import create_dir_if_missing
 from .utils import get_abs_path
-from .utils import get_config_from_file
 from .utils import import_and_trust
 
 
@@ -22,7 +20,7 @@ class Sync(object):
         admin_gnupg_path = get_abs_path(config.get(
             "gnupg",
             "admin",
-            os.path.join(os.getcwd(),"secrets/gnupg_admin")
+            os.path.join(os.getcwd(), "secrets/gnupg_admin")
         ))
 
         create_dir_if_missing(user_gnupg_path)

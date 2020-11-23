@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 import tempfile
 import time
 import unittest
@@ -10,24 +9,15 @@ from configparser import ConfigParser
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends import openssl
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
 import gnupg
-import re
 
 from mtls_server import storage
 from mtls_server.cert_processor import CertProcessor
-from mtls_server.cert_processor import CertProcessorInvalidSignatureError
-from mtls_server.cert_processor import CertProcessorKeyNotFoundError
 from mtls_server.config import Config
 from mtls_server.utils import User
 from mtls_server.utils import gen_passwd
-from mtls_server.utils import gen_pgp_key
-from mtls_server.utils import generate_csr
 from mtls_server.utils import generate_key
-from mtls_server.utils import get_abs_path
 
 
 logging.disable(logging.CRITICAL)
@@ -54,7 +44,6 @@ class TestCertProcessorBase(unittest.TestCase):
                 passphrase=user.password,
             )
             signature_str = str(signature)
-            csr_str = csr.public_bytes(serialization.Encoding.PEM).decode("utf-8")
             sig_path = "{tmpdir}/{fingerprint}.asc".format(
                 tmpdir=self.USER_GNUPGHOME.name, fingerprint=user.fingerprint
             )
@@ -77,7 +66,6 @@ class TestCertProcessorBase(unittest.TestCase):
                 passphrase=user.password,
             )
             signature_str = str(signature)
-            csr_str = csr.public_bytes(serialization.Encoding.PEM).decode("utf-8")
             sig_path = "{tmpdir}/{fingerprint}.asc".format(
                 tmpdir=self.ADMIN_GNUPGHOME.name, fingerprint=user.fingerprint
             )
@@ -95,13 +83,6 @@ class TestCertProcessorBase(unittest.TestCase):
     def generate_cert(self):
         for user in self.users:
             csr = user.gen_csr()
-            sig = self.user_gpg.sign(
-                csr.public_bytes(serialization.Encoding.PEM),
-                keyid=user.fingerprint,
-                detach=True,
-                clearsign=True,
-                passphrase=user.password,
-            )
             bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
             cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
             self.assertIsInstance(cert, openssl.x509._Certificate)
@@ -110,13 +91,6 @@ class TestCertProcessorBase(unittest.TestCase):
         rev_serial_num = None
         for i, user in enumerate(self.users):
             csr = user.gen_csr()
-            sig = self.user_gpg.sign(
-                csr.public_bytes(serialization.Encoding.PEM),
-                keyid=user.fingerprint,
-                detach=True,
-                clearsign=True,
-                passphrase=user.password,
-            )
             bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
             cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
             if i == 1:
@@ -153,13 +127,6 @@ class TestCertProcessorBase(unittest.TestCase):
     def revoke_cert(self):
         user = self.users[0]
         csr = user.gen_csr()
-        sig = self.user_gpg.sign(
-            csr.public_bytes(serialization.Encoding.PEM),
-            keyid=user.fingerprint,
-            detach=True,
-            clearsign=True,
-            passphrase=user.password,
-        )
         bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
         cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
         self.cert_processor.revoke_cert(cert.serial_number)
@@ -172,17 +139,9 @@ class TestCertProcessorBase(unittest.TestCase):
     def update_cert(self):
         user = self.users[0]
         csr = user.gen_csr()
-        sig = self.user_gpg.sign(
-            csr.public_bytes(serialization.Encoding.PEM),
-            keyid=user.fingerprint,
-            detach=True,
-            clearsign=True,
-            passphrase=user.password,
-        )
         bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
         old_cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
         time.sleep(65)
-        new_b_cert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
         new_cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
         self.assertEqual(old_cert.serial_number, new_cert.serial_number)
 
@@ -621,13 +580,6 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
     def test_crl_distribution_path(self):
         user = self.users[0]
         csr = user.gen_csr(email=user.email)
-        sig = self.user_gpg.sign(
-            csr.public_bytes(serialization.Encoding.PEM),
-            keyid=user.fingerprint,
-            detach=True,
-            clearsign=True,
-            passphrase=user.password,
-        )
         bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
         cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
         self.assertIsInstance(cert, openssl.x509._Certificate)

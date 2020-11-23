@@ -8,14 +8,12 @@ import gnupg
 
 from mtls_server.handler import Handler
 from mtls_server.config import Config
-from mtls_server.sync import Sync
 from mtls_server.utils import User
 from mtls_server.utils import gen_passwd
-from mtls_server.utils import gen_pgp_key
-from mtls_server.utils import generate_csr
 from mtls_server.utils import generate_key
 
 logging.disable(logging.CRITICAL)
+
 
 class TestSync(unittest.TestCase):
     def setUp(self):

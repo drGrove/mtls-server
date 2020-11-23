@@ -3,10 +3,7 @@ import json
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
 
 from .cert_processor import CertProcessor
 from .cert_processor import CertProcessorInvalidSignatureError
@@ -113,14 +110,12 @@ class Handler:
         Returns:
             (json, int): a tuple of the json response and http status code.
         """
-        is_admin = False
         fingerprint = None
         sig_path = write_sig_to_file(body["signature"])
         try:
             fingerprint = self.cert_processor.admin_verify(
                 json.dumps(body["query"]).encode("UTF-8"), sig_path
             )
-            is_admin = True
             logger.info(
                 f"Admin {fingerprint} revoking certificate with query {json.dumps(body['query'])}"
             )

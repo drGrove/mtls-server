@@ -36,11 +36,12 @@ create-pgp-key: gen-secrets-folder
 
 .PHONY: format
 format:
-	@pipenv run black -l 90 ./*.py
+	pipenv run black ./**/*.py
 
 .PHONY: lint
 lint:
-	@pipenv run pycodestyle --max-line-length=90 ./*.py
+	pipenv run flake8 ./**/*.py
+	pipenv run black --check ./**/*.py
 
 .PHONY: coverage
 coverage:
