@@ -55,10 +55,20 @@ class TestSync(unittest.TestCase):
         self.new_user_gpg = gnupg.GPG(gnupghome=self.NEW_USER_GNUPGHOME.name)
         self.new_admin_gpg = gnupg.GPG(gnupghome=self.NEW_ADMIN_GNUPGHOME.name)
         self.new_users = [
-            User("user@host", gen_passwd(), generate_key(), gpg=self.new_user_gpg)
+            User(
+                "user@host",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_user_gpg,
+            )
         ]
         self.new_admins = [
-            User("admin@host", gen_passwd(), generate_key(), gpg=self.new_admin_gpg)
+            User(
+                "admin@host",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_admin_gpg,
+            )
         ]
 
     def tearDown(self):
@@ -75,7 +85,9 @@ class TestSync(unittest.TestCase):
             fingerprint = user.fingerprint
             pgp_armored_key = self.new_user_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath=seed_subpath, fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath=seed_subpath,
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
@@ -94,7 +106,9 @@ class TestSync(unittest.TestCase):
             fingerprint = admin.fingerprint
             pgp_armored_key = self.new_admin_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath=seed_subpath, fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath=seed_subpath,
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
@@ -113,7 +127,9 @@ class TestSync(unittest.TestCase):
             fingerprint = user.fingerprint
             pgp_armored_key = self.new_user_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath="user", fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath="user",
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
@@ -121,7 +137,9 @@ class TestSync(unittest.TestCase):
             fingerprint = admin.fingerprint
             pgp_armored_key = self.new_admin_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath="admin", fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath="admin",
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)

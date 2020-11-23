@@ -53,16 +53,14 @@ class CertProcessor:
         """
         user_gnupg_path = get_abs_path(
             config.get(
-                "gnupg",
-                "user",
-                os.path.join(os.getcwd(), "secrets/gnupg")
+                "gnupg", "user", os.path.join(os.getcwd(), "secrets/gnupg")
             )
         )
         admin_gnupg_path = get_abs_path(
             config.get(
                 "gnupg",
                 "admin",
-                os.path.join(os.getcwd(), "secrets/gnupg_admin")
+                os.path.join(os.getcwd(), "secrets/gnupg_admin"),
             )
         )
 
@@ -75,8 +73,8 @@ class CertProcessor:
         self.admin_gpg.encoding = "utf-8"
 
         # Start Background threads for getting revoke/expiry from Keyserver
-        KeyRefresh('user_key_refresh', self.user_gpg, config)
-        KeyRefresh('admin_key_refresh', self.admin_gpg, config)
+        KeyRefresh("user_key_refresh", self.user_gpg, config)
+        KeyRefresh("admin_key_refresh", self.admin_gpg, config)
 
         if config.get("storage", "engine", None) is None:
             raise StorageEngineMissing()
@@ -86,8 +84,12 @@ class CertProcessor:
         self.config = config
         self.openssl_format = serialization.PrivateFormat.TraditionalOpenSSL
         self.no_encyption = serialization.NoEncryption()
-        self.SERVER_URL = config.get("mtls", "fqdn", os.environ.get('FQDN', 'localhost'))
-        self.PROTOCOL = config.get('mtls', 'protocol', os.environ.get("PROTOCOL", 'http'))
+        self.SERVER_URL = config.get(
+            "mtls", "fqdn", os.environ.get("FQDN", "localhost")
+        )
+        self.PROTOCOL = config.get(
+            "mtls", "protocol", os.environ.get("PROTOCOL", "http")
+        )
 
     def verify(self, data, signature):
         """Verifies that the signed data is signed by a trusted key.
@@ -137,7 +139,9 @@ class CertProcessor:
         if verified is None:
             raise CertProcessorInvalidSignatureError
         if verified.valid is None or verified.valid is False:
-            logger.error("Invalid signature for {}".format(verified.fingerprint))
+            logger.error(
+                "Invalid signature for {}".format(verified.fingerprint)
+            )
             raise CertProcessorInvalidSignatureError
         if (
             verified.trust_level is not None
@@ -161,7 +165,9 @@ class CertProcessor:
             Object if it can be parsed, otherwise None.
         """
         try:
-            return x509.load_pem_x509_csr(bytes(csr, "utf-8"), default_backend())
+            return x509.load_pem_x509_csr(
+                bytes(csr, "utf-8"), default_backend()
+            )
         except Exception as e:
             logger.error(e)
             return None
@@ -242,7 +248,11 @@ class CertProcessor:
 
         key_id = x509.SubjectKeyIdentifier.from_public_key(key.public_key())
         subject = issuer = x509.Name(
-            [x509.NameAttribute(NameOID.COMMON_NAME, self.config.get("ca", "issuer"))]
+            [
+                x509.NameAttribute(
+                    NameOID.COMMON_NAME, self.config.get("ca", "issuer")
+                )
+            ]
         )
         now = datetime.datetime.utcnow()
         serial = x509.random_serial_number()
@@ -261,7 +271,9 @@ class CertProcessor:
                 ),
                 critical=False,
             )
-            .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+            .add_extension(
+                x509.BasicConstraints(ca=True, path_length=0), critical=True
+            )
             .add_extension(
                 x509.KeyUsage(
                     digital_signature=True,
@@ -350,11 +362,13 @@ class CertProcessor:
         user_gpg_key = self.get_gpg_key_by_fingerprint(fingerprint, is_admin)
         if user_gpg_key is None:
             raise CertProcessorNoPGPKeyFoundError()
-        email_in_key = self.check_subject_against_key(csr.subject, user_gpg_key)
+        email_in_key = self.check_subject_against_key(
+            csr.subject, user_gpg_key
+        )
         if not email_in_key and not is_admin:
             raise CertProcessorNotAdminUserError()
         for alt in self.config.get("ca", "alternate_name").split(","):
-            alts.append(x509.DNSName(u"{}".format(alt)))
+            alts.append(x509.DNSName("{}".format(alt)))
         cert = (
             x509.CertificateBuilder()
             .subject_name(csr.subject)
@@ -365,7 +379,9 @@ class CertProcessor:
             .not_valid_after(lifetime_delta)
         )
         if len(alts) > 0:
-            cert = cert.add_extension(x509.SubjectAlternativeName(alts), critical=False)
+            cert = cert.add_extension(
+                x509.SubjectAlternativeName(alts), critical=False
+            )
         crl_dp = x509.DistributionPoint(
             [
                 x509.UniformResourceIdentifier(
@@ -378,17 +394,23 @@ class CertProcessor:
             reasons=None,
             crl_issuer=None,
         )
-        cert = cert.add_extension(x509.CRLDistributionPoints([crl_dp]), critical=False)
+        cert = cert.add_extension(
+            x509.CRLDistributionPoints([crl_dp]), critical=False
+        )
 
         logger.info(f"generate_cert: Signing certificate for {fingerprint}")
         cert = cert.sign(
-            private_key=ca_pkey, algorithm=hashes.SHA256(), backend=default_backend()
+            private_key=ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend(),
         )
         try:
             logger.info(f"generate_cert: saving certificate for {fingerprint}")
             self.storage.save_cert(cert, fingerprint)
         except StorageEngineCertificateConflict:
-            logger.info(f"generate_cert: updating certificate for {fingerprint}")
+            logger.info(
+                f"generate_cert: updating certificate for {fingerprint}"
+            )
             cert = self.update_cert(csr, lifetime)
         return cert.public_bytes(serialization.Encoding.PEM)
 
@@ -409,8 +431,12 @@ class CertProcessor:
         """
         common_name = csr.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
         common_name = common_name[0].value
-        bcert = bytes(str(self.storage.get_cert(common_name=common_name)[0]), "UTF-8")
-        old_cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
+        bcert = bytes(
+            str(self.storage.get_cert(common_name=common_name)[0]), "UTF-8"
+        )
+        old_cert = x509.load_pem_x509_certificate(
+            bcert, backend=default_backend()
+        )
         old_cert_pub = (
             old_cert.public_key()
             .public_bytes(
@@ -435,7 +461,7 @@ class CertProcessor:
         lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
         alts = []
         for alt in self.config.get("ca", "alternate_name").split(","):
-            alts.append(x509.DNSName(u"{}".format(alt)))
+            alts.append(x509.DNSName("{}".format(alt)))
 
         cert = (
             x509.CertificateBuilder()
@@ -447,7 +473,9 @@ class CertProcessor:
             .not_valid_after(lifetime_delta)
         )
         if len(alts) > 0:
-            cert = cert.add_extension(x509.SubjectAlternativeName(alts), critical=False)
+            cert = cert.add_extension(
+                x509.SubjectAlternativeName(alts), critical=False
+            )
         crl_dp = x509.DistributionPoint(
             [
                 x509.UniformResourceIdentifier(
@@ -460,10 +488,14 @@ class CertProcessor:
             reasons=None,
             crl_issuer=None,
         )
-        cert = cert.add_extension(x509.CRLDistributionPoints([crl_dp]), critical=False)
+        cert = cert.add_extension(
+            x509.CRLDistributionPoints([crl_dp]), critical=False
+        )
 
         cert = cert.sign(
-            private_key=ca_pkey, algorithm=hashes.SHA256(), backend=default_backend()
+            private_key=ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend(),
         )
         self.storage.update_cert(cert=cert, serial_number=cert.serial_number)
         return cert
@@ -480,7 +512,9 @@ class CertProcessor:
             x509.CertificateRevocationListBuilder()
             .issuer_name(ca_cert.subject)
             .last_update(datetime.datetime.utcnow())
-            .next_update(datetime.datetime.utcnow() + datetime.timedelta(minutes=15))
+            .next_update(
+                datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+            )
         )
         for cert in self.storage.get_revoked_certs():
             # Convert the string cert into a cryptography cert object
@@ -496,7 +530,9 @@ class CertProcessor:
             )
         # Sign the CRL
         crl = crl.sign(
-            private_key=ca_pkey, algorithm=hashes.SHA256(), backend=default_backend()
+            private_key=ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend(),
         )
         return crl
 

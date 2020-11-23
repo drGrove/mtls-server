@@ -83,16 +83,24 @@ class TestCertProcessorBase(unittest.TestCase):
     def generate_cert(self):
         for user in self.users:
             csr = user.gen_csr()
-            bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
-            cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
+            bcert = self.cert_processor.generate_cert(
+                csr, 60, user.fingerprint
+            )
+            cert = x509.load_pem_x509_certificate(
+                bcert, backend=default_backend()
+            )
             self.assertIsInstance(cert, openssl.x509._Certificate)
 
     def get_crl(self):
         rev_serial_num = None
         for i, user in enumerate(self.users):
             csr = user.gen_csr()
-            bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
-            cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
+            bcert = self.cert_processor.generate_cert(
+                csr, 60, user.fingerprint
+            )
+            cert = x509.load_pem_x509_certificate(
+                bcert, backend=default_backend()
+            )
             if i == 1:
                 self.cert_processor.revoke_cert(cert.serial_number)
                 rev_serial_num = cert.serial_number
@@ -140,9 +148,13 @@ class TestCertProcessorBase(unittest.TestCase):
         user = self.users[0]
         csr = user.gen_csr()
         bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
-        old_cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
+        old_cert = x509.load_pem_x509_certificate(
+            bcert, backend=default_backend()
+        )
         time.sleep(65)
-        new_cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
+        new_cert = x509.load_pem_x509_certificate(
+            bcert, backend=default_backend()
+        )
         self.assertEqual(old_cert.serial_number, new_cert.serial_number)
 
 
@@ -186,19 +198,29 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                "user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
+            User(
+                "user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
         ]
         self.invalid_users = [
             User("user4@host", gen_passwd(), generate_key(), gpg=self.user_gpg)
         ]
         self.admin_users = [
-            User("admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg)
+            User(
+                "admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg
+            )
         ]
         for user in self.users:
-            self.user_gpg.import_keys(self.user_gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
         for user in self.admin_users:
-            self.admin_gpg.import_keys(self.admin_gpg.export_keys(user.fingerprint))
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
 
     def tearDown(self):
         self.USER_GNUPGHOME.cleanup()
@@ -273,19 +295,29 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                "user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
+            User(
+                "user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
         ]
         self.invalid_users = [
             User("user4@host", gen_passwd(), generate_key(), gpg=self.user_gpg)
         ]
         self.admin_users = [
-            User("admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg)
+            User(
+                "admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg
+            )
         ]
         for user in self.users:
-            self.user_gpg.import_keys(self.user_gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
         for user in self.admin_users:
-            self.admin_gpg.import_keys(self.admin_gpg.export_keys(user.fingerprint))
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
 
     def tearDown(self):
         self.USER_GNUPGHOME.cleanup()
@@ -399,19 +431,29 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                "user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
+            User(
+                "user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
         ]
         self.invalid_users = [
             User("user4@host", gen_passwd(), generate_key(), gpg=self.user_gpg)
         ]
         self.admin_users = [
-            User("admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg)
+            User(
+                "admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg
+            )
         ]
         for user in self.users:
-            self.user_gpg.import_keys(self.user_gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
         for user in self.admin_users:
-            self.admin_gpg.import_keys(self.admin_gpg.export_keys(user.fingerprint))
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
 
     def tearDown(self):
         self.USER_GNUPGHOME.cleanup()
@@ -484,19 +526,29 @@ class TestCertProcessorPasswordCAKey(TestCertProcessorBase):
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                "user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
+            User(
+                "user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
         ]
         self.invalid_users = [
             User("user4@host", gen_passwd(), generate_key(), gpg=self.user_gpg)
         ]
         self.admin_users = [
-            User("admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg)
+            User(
+                "admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg
+            )
         ]
         for user in self.users:
-            self.user_gpg.import_keys(self.user_gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
         for user in self.admin_users:
-            self.admin_gpg.import_keys(self.admin_gpg.export_keys(user.fingerprint))
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
 
     def tearDown(self):
         self.USER_GNUPGHOME.cleanup()
@@ -566,10 +618,17 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.users = [
-            User("user@host.com", gen_passwd(), generate_key(), gpg=self.user_gpg)
+            User(
+                "user@host.com",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.user_gpg,
+            )
         ]
         for user in self.users:
-            self.user_gpg.import_keys(self.user_gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
 
     def tearDown(self):
         self.USER_GNUPGHOME.cleanup()

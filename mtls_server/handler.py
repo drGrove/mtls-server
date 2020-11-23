@@ -25,7 +25,7 @@ class GPGKeyNotFoundException(Exception):
 class Handler:
     def __init__(self, config):
         # Seed the trust stores
-        seed = os.environ.get('SEED_ON_INIT', "1")
+        seed = os.environ.get("SEED_ON_INIT", "1")
         if seed == "1":
             Sync(config).seed()
         self.cert_processor = CertProcessor(config)
@@ -40,7 +40,9 @@ class Handler:
             logger.info(
                 f"User requested lifetime less than minimum. {lifetime} < {min_lifetime}"
             )
-            return error_response(f"lifetime must be greater than {min_lifetime} seconds")
+            return error_response(
+                f"lifetime must be greater than {min_lifetime} seconds"
+            )
         if max_lifetime != 0:
             if lifetime > max_lifetime:
                 logger.info(
@@ -59,7 +61,9 @@ class Handler:
             logger.info("create_cert: write to temp sig file")
             sig_path = write_sig_to_file(body["signature"])
             logger.info("create_cert: get fingerprint")
-            fingerprint = self.cert_processor.verify(csr_public_bytes, sig_path)
+            fingerprint = self.cert_processor.verify(
+                csr_public_bytes, sig_path
+            )
             logger.info("create_cert: remove sig file")
             os.remove(sig_path)
         except CertProcessorUntrustedSignatureError as e:
@@ -76,9 +80,15 @@ class Handler:
             return error_response("Invalid CSR")
         cert = None
         try:
-            logger.info(f"create_cert: generating certificate for: {fingerprint}")
-            cert = self.cert_processor.generate_cert(csr, lifetime, fingerprint)
-            logger.info(f"create_cert: sending certificate to client for: {fingerprint}")
+            logger.info(
+                f"create_cert: generating certificate for: {fingerprint}"
+            )
+            cert = self.cert_processor.generate_cert(
+                csr, lifetime, fingerprint
+            )
+            logger.info(
+                f"create_cert: sending certificate to client for: {fingerprint}"
+            )
             return json.dumps({"cert": cert.decode("UTF-8")}), 200
         except CertProcessorKeyNotFoundError:
             logger.critical("Key missing. Service not properly initialized")
@@ -120,7 +130,10 @@ class Handler:
                 f"Admin {fingerprint} revoking certificate with query {json.dumps(body['query'])}"
             )
             os.remove(sig_path)
-        except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
+        except (
+            CertProcessorInvalidSignatureError,
+            CertProcessorUntrustedSignatureError,
+        ):
             try:
                 fingerprint = self.cert_processor.verify(
                     json.dumps(body["query"]).encode("UTF-8"), sig_path
@@ -156,7 +169,10 @@ class Handler:
             fingerprint = self.cert_processor.admin_verify(
                 body["fingerprint"].encode("UTF-8"), sig_path
             )
-        except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
+        except (
+            CertProcessorInvalidSignatureError,
+            CertProcessorUntrustedSignatureError,
+        ):
             os.remove(sig_path)
             logger.error(
                 "Invalid signature on adding fingerprint: {fp}".format(
@@ -171,13 +187,17 @@ class Handler:
 
         try:
             if is_admin:
-                has_user = self.has_user(self.cert_processor.admin_gpg, fingerprint)
+                has_user = self.has_user(
+                    self.cert_processor.admin_gpg, fingerprint
+                )
                 if not has_user:
                     logger.info(
                         "Admin {fingerprint} adding admin user {body['fingerprint']}"
                     )
                     # Add a user to the admin trust store
-                    self.add_and_trust_user(self.cert_processor.admin_gpg, fingerprint)
+                    self.add_and_trust_user(
+                        self.cert_processor.admin_gpg, fingerprint
+                    )
 
             has_user = self.has_user(self.cert_processor.user_gpg, fingerprint)
 
@@ -188,11 +208,15 @@ class Handler:
                         adminfp=fingerprint, userfp=body["fingerprint"]
                     )
                 )
-                self.add_and_trust_user(self.cert_processor.user_gpg, fingerprint)
+                self.add_and_trust_user(
+                    self.cert_processor.user_gpg, fingerprint
+                )
             return json.dumps({"msg": "success"}), 201
         except GPGKeyNotFoundException:
             return (
-                json.dumps({"msg": "Key not found on keyserver. Could not import"}),
+                json.dumps(
+                    {"msg": "Key not found on keyserver. Could not import"}
+                ),
                 422,
             )
 
@@ -209,7 +233,9 @@ class Handler:
         )
         if result.count is None or result.count == 0:
             raise GPGKeyNotFoundException()
-        self.cert_processor.user_gpg.trust_keys([fingerprint], "TRUST_ULTIMATE")
+        self.cert_processor.user_gpg.trust_keys(
+            [fingerprint], "TRUST_ULTIMATE"
+        )
 
     def remove_user(self, body, is_admin=False):
         """Remove a user or admin."""
@@ -224,9 +250,14 @@ class Handler:
                     adminfp=fingerprint, userfp=body["fingerprint"]
                 )
             )
-        except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
+        except (
+            CertProcessorInvalidSignatureError,
+            CertProcessorUntrustedSignatureError,
+        ):
             os.remove(sig_path)
-            logger.error(f"Invalid signature on adding fingerprint: {body['fingerprint']}")
+            logger.error(
+                f"Invalid signature on adding fingerprint: {body['fingerprint']}"
+            )
             return error_response("Unauthorized", 403)
         # Remove signature file
         os.remove(sig_path)

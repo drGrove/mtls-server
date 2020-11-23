@@ -13,7 +13,9 @@ __author__ = "Danny Grove <danny@drgrovellc.com>"
 
 app = None
 handler = None
-CONFIG_PATH = os.environ.get('CONFIG_PATH', os.path.join(os.getcwd(), "config.ini"))
+CONFIG_PATH = os.environ.get(
+    "CONFIG_PATH", os.path.join(os.getcwd(), "config.ini")
+)
 
 
 def create_app(config=None):
@@ -23,7 +25,7 @@ def create_app(config=None):
         Config.init_config(CONFIG_PATH)
 
     # Set the CWD so that other areas can reference it.
-    Config.config.set('mtls', 'cwd', os.getcwd())
+    Config.config.set("mtls", "cwd", os.getcwd())
 
     handler = Handler(Config)
 

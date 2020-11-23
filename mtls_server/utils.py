@@ -33,7 +33,9 @@ def generate_csr(key, common_name, email=None):
                     x509.NameAttribute(NameOID.COUNTRY_NAME, country),
                     x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state),
                     x509.NameAttribute(NameOID.LOCALITY_NAME, locality),
-                    x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
+                    x509.NameAttribute(
+                        NameOID.ORGANIZATION_NAME, organization_name
+                    ),
                     x509.NameAttribute(NameOID.COMMON_NAME, common_name),
                     x509.NameAttribute(NameOID.EMAIL_ADDRESS, email),
                 ]
@@ -45,9 +47,7 @@ def generate_csr(key, common_name, email=None):
 
 def gen_pgp_key(email, password, gpg, key_size=1024):
     input_data = gpg.gen_key_input(
-        name_email=email,
-        passphrase=password,
-        key_length=key_size
+        name_email=email, passphrase=password, key_length=key_size
     )
     return gpg.gen_key(input_data)
 
