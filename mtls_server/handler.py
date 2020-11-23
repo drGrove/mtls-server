@@ -18,7 +18,11 @@ from .utils import error_response
 from .utils import write_sig_to_file
 
 
-class GPGKeyNotFoundException(Exception):
+class PGPKeyNotFoundException(Exception):
+    pass
+
+
+class PGPTrustException(Exception):
     pass
 
 
@@ -192,7 +196,7 @@ class Handler:
                 )
                 if not has_user:
                     logger.info(
-                        "Admin {fingerprint} adding admin user {body['fingerprint']}"
+                        f"Admin {fingerprint} adding admin user {body['fingerprint']}"
                     )
                     # Add a user to the admin trust store
                     self.add_and_trust_user(
@@ -204,18 +208,23 @@ class Handler:
             if not has_user:
                 # Add the user to the user trust store
                 logger.info(
-                    "Admin {adminfp} adding admin user {userfp}".format(
-                        adminfp=fingerprint, userfp=body["fingerprint"]
-                    )
+                    f"Admin {fingerprint} adding admin user {body['fingerprint']}"
                 )
                 self.add_and_trust_user(
                     self.cert_processor.user_gpg, fingerprint
                 )
             return json.dumps({"msg": "success"}), 201
-        except GPGKeyNotFoundException:
+        except PGPKeyNotFoundException:
             return (
                 json.dumps(
                     {"msg": "Key not found on keyserver. Could not import"}
+                ),
+                422,
+            )
+        except PGPTrustException:
+            return (
+                json.dumps(
+                    {"msg": "Key could not be trusted"}
                 ),
                 422,
             )
@@ -227,15 +236,22 @@ class Handler:
         return True
 
     def add_and_trust_user(self, gpg, fingerprint):
+        keyserver = self.config.get("gnupg", "keyserver", "keyserver.ubuntu.com")
+        logger.info(f"Retrieving key {fingerprint} from {keyserver}")
         result = self.cert_processor.user_gpg.recv_keys(
-            self.config.get("gnupg", "keyserver", "keyserver.ubuntu.com"),
+            keyserver,
             fingerprint,
         )
         if result.count is None or result.count == 0:
-            raise GPGKeyNotFoundException()
-        self.cert_processor.user_gpg.trust_keys(
-            [fingerprint], "TRUST_ULTIMATE"
-        )
+            raise PGPKeyNotFoundException()
+
+        logger.info(f"Trusting {fingerprint}")
+        try:
+            result = self.cert_processor.user_gpg.trust_keys(
+                [fingerprint], "TRUST_ULTIMATE"
+            )
+        except ValueError:
+            raise PGPTrustException()
 
     def remove_user(self, body, is_admin=False):
         """Remove a user or admin."""

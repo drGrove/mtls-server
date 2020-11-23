@@ -340,15 +340,16 @@ class TestHandler(unittest.TestCase):
 
     def test_add_admin_valid_admin(self):
         admin = self.admin_users[0]
+        fingerprint = "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD"
         sig = self.admin_gpg.sign(
-            "B10116B8193F2DBD",
+            fingerprint.encode("UTF-8"),
             keyid=admin.fingerprint,
             clearsign=True,
             detach=True,
             passphrase=admin.password,
         )
         payload = {
-            "fingerprint": "B10116B8193F2DBD",
+            "fingerprint": fingerprint,
             "signature": str(sig),
             "type": "USER",
         }
@@ -357,16 +358,17 @@ class TestHandler(unittest.TestCase):
         self.assertEqual(response_json["msg"], "success")
 
     def test_add_admin_twice_valid_admin(self):
+        fingerprint = "C92FE5A3FBD58DD3EC5AA26BB10116B8193F2DBD"
         admin = self.admin_users[0]
         sig = self.admin_gpg.sign(
-            "B10116B8193F2DBD",
+            fingerprint.encode("UTF-8"),
             keyid=admin.fingerprint,
             clearsign=True,
             detach=True,
             passphrase=admin.password,
         )
         payload = {
-            "fingerprint": "B10116B8193F2DBD",
+            "fingerprint": fingerprint,
             "signature": str(sig),
             "type": "USER",
         }
