@@ -85,6 +85,10 @@ test-by-name.dev:
 build-image:
 	@docker build -t mtls-server:$(TAG) .
 
+.PHONY: build-pypi
+build-pypi:
+	@pipenv run python setup.py sdist bdist_wheel
+
 .PHONY: tag-image
 tag-image: build-image
 	@docker tag mtls-server:$(TAG) $(DOCKER_REGISTRY)mtls-server:$(TAG)
