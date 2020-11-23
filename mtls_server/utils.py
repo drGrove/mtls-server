@@ -2,23 +2,19 @@ import json
 import os
 import random
 import re
-import unittest
 import uuid
 
 from configparser import ConfigParser
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-import gnupg
 
 
-def generate_key():
+def generate_key(key_size=4096):
     return rsa.generate_private_key(
-        public_exponent=65537, key_size=4096, backend=default_backend()
+        public_exponent=65537, key_size=key_size, backend=default_backend()
     )
 
 
@@ -37,7 +33,9 @@ def generate_csr(key, common_name, email=None):
                     x509.NameAttribute(NameOID.COUNTRY_NAME, country),
                     x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state),
                     x509.NameAttribute(NameOID.LOCALITY_NAME, locality),
-                    x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
+                    x509.NameAttribute(
+                        NameOID.ORGANIZATION_NAME, organization_name
+                    ),
                     x509.NameAttribute(NameOID.COMMON_NAME, common_name),
                     x509.NameAttribute(NameOID.EMAIL_ADDRESS, email),
                 ]
@@ -47,8 +45,10 @@ def generate_csr(key, common_name, email=None):
     )
 
 
-def gen_pgp_key(email, password, gpg):
-    input_data = gpg.gen_key_input(name_email=email, passphrase=password)
+def gen_pgp_key(email, password, gpg, key_size=1024):
+    input_data = gpg.gen_key_input(
+        name_email=email, passphrase=password, key_length=key_size
+    )
     return gpg.gen_key(input_data)
 
 
@@ -133,9 +133,10 @@ def write_sig_to_file(sig_str):
 
 def get_abs_path(path):
     """Gets the absolute path given a path."""
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    if not os.path.isabs(path):
-        return os.path.abspath(os.path.join(dir_path, path))
+    if os.path.isabs(path):
+        return path
+
+    return os.path.abspath(os.path.join(os.getcwd(), path))
 
 
 def get_config_from_file(file_name_or_path):
@@ -146,20 +147,21 @@ def get_config_from_file(file_name_or_path):
 
 
 def import_and_trust(key_data, gpg):
-        """Imports a key into a given keyring and trust database as well as
-        properly trusting it for use.
+    """Imports a key into a given keyring and trust database as well as
+    properly trusting it for use.
 
-        Args:
-            key_data (str): The key data in ACSII or binary format.
-            gpg (gnupg.GPG): The gpg instance.
+    Args:
+        key_data (str): The key data in ACSII or binary format.
+        gpg (gnupg.GPG): The gpg instance.
 
-        Returns:
-            str: The fingerprint of the newly imported and trusted key.
-        """
-        import_data = gpg.import_keys(key_data)
-        fingerprint = import_data.fingerprints[0]
-        gpg.trust_keys([fingerprint], "TRUST_ULTIMATE")
-        return fingerprint
+    Returns:
+        str: The fingerprint of the newly imported and trusted key.
+    """
+    import_data = gpg.import_keys(key_data)
+    fingerprint = import_data.fingerprints[0]
+    gpg.trust_keys([fingerprint], "TRUST_ULTIMATE")
+    return fingerprint
+
 
 def create_dir_if_missing(path):
     if not os.path.isdir(path):

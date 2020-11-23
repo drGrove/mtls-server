@@ -2,25 +2,28 @@ import os
 
 import gnupg
 
-from logger import logger
-from utils import get_config_from_file, import_and_trust, create_dir_if_missing
+from .logger import logger
+from .utils import create_dir_if_missing
+from .utils import get_abs_path
+from .utils import import_and_trust
 
 
 class Sync(object):
-    def __init__(self, config=None):
-        if config is None:
-            config = get_config_from_file("config.ini")
+    def __init__(self, config):
         self.config = config
-        user_gnupg_path = config.get("gnupg", "user")
-        admin_gnupg_path = config.get("gnupg", "admin")
-        if not os.path.isabs(user_gnupg_path):
-            user_gnupg_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), user_gnupg_path)
+
+        user_gnupg_path = get_abs_path(
+            config.get(
+                "gnupg", "user", os.path.join(os.getcwd(), "secrets/gnupg")
             )
-        if not os.path.isabs(admin_gnupg_path):
-            admin_gnupg_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), admin_gnupg_path)
+        )
+        admin_gnupg_path = get_abs_path(
+            config.get(
+                "gnupg",
+                "admin",
+                os.path.join(os.getcwd(), "secrets/gnupg_admin"),
             )
+        )
 
         create_dir_if_missing(user_gnupg_path)
         create_dir_if_missing(admin_gnupg_path)
@@ -33,7 +36,7 @@ class Sync(object):
     def seed(self):
         """Seeds the User and Admin trust databases."""
         logger.info("Seeding PGP Trust Databases")
-        seed_base_dir = self.config.get("mtls", "seed_dir", fallback="/tmp/seeds")
+        seed_base_dir = self.config.get("mtls", "seed_dir", "/tmp/seeds")
         if os.path.isdir(seed_base_dir):
             for trust in ["user", "admin"]:
                 seed_dir = os.path.join(seed_base_dir, trust)
@@ -46,9 +49,7 @@ class Sync(object):
                             with open(f_path, "r") as gpg_data:
                                 gpg_data = str(gpg_data.read())
                                 if trust == "admin":
-                                    import_and_trust(
-                                        gpg_data, self.admin_gpg
-                                    )
+                                    import_and_trust(gpg_data, self.admin_gpg)
                                 # If we add an admin, they're also a user,
                                 # so we can just pull the fingerprint once
                                 # and use that for logging. It will only show

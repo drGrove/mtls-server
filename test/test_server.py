@@ -1,32 +1,18 @@
-import datetime
 import json
 import logging
 import tempfile
 import unittest
 
 from configparser import ConfigParser
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.backends import openssl
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
 import gnupg
 
-from cert_processor import CertProcessor
-from cert_processor import CertProcessorKeyNotFoundError
-from cert_processor import CertProcessorInvalidSignatureError
-from cert_processor import CertProcessorUntrustedSignatureError
-from handler import Handler
-import storage
-from server import create_app
-from utils import User
-from utils import gen_passwd
-from utils import gen_pgp_key
-from utils import generate_csr
-from utils import generate_key
-from utils import get_abs_path
+from mtls_server import storage
+from mtls_server.config import Config
+from mtls_server.server import create_app
+from mtls_server.utils import User
+from mtls_server.utils import gen_passwd
+from mtls_server.utils import generate_key
 
 
 logging.disable(logging.CRITICAL)
@@ -65,8 +51,9 @@ class TestServer(unittest.TestCase):
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
             )
         )
+        Config.init_config(config=self.config)
         self.key = generate_key()
-        self.engine = storage.SQLiteStorageEngine(self.config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
@@ -75,38 +62,69 @@ class TestServer(unittest.TestCase):
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         self.invalid_gpg = gnupg.GPG(gnupghome=self.INVALID_GNUPGHOME.name)
         self.new_user_gpg = gnupg.GPG(gnupghome=self.NEW_USER_GNUPGHOME.name)
-        app = create_app(self.config)
+        app = create_app(Config)
         self.app = app.test_client()
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
-            User("user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
+            User(
+                "user2@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
+            User(
+                "user3@host", gen_passwd(), generate_key(), gpg=self.user_gpg
+            ),
         ]
         self.invalid_users = [
-            User("user4@host", gen_passwd(), generate_key(), gpg=self.invalid_gpg)
+            User(
+                "user4@host",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.invalid_gpg,
+            )
         ]
         self.admin_users = [
-            User("admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg)
+            User(
+                "admin@host", gen_passwd(), generate_key(), gpg=self.admin_gpg
+            )
         ]
         self.new_users = [
-            User("newuser@host", gen_passwd(), generate_key(), gpg=self.new_user_gpg),
-            User("newuser2@host", gen_passwd(), generate_key(), gpg=self.new_user_gpg),
+            User(
+                "newuser@host",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_user_gpg,
+            ),
+            User(
+                "newuser2@host",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_user_gpg,
+            ),
         ]
         for user in self.users:
-            self.user_gpg.import_keys(self.user_gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.user_gpg.export_keys(user.fingerprint)
+            )
             self.user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
         for user in self.admin_users:
             # Import to admin keychain
-            self.admin_gpg.import_keys(self.admin_gpg.export_keys(user.fingerprint))
+            self.admin_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
             self.admin_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
             # Import to user keychain
-            self.user_gpg.import_keys(self.admin_gpg.export_keys(user.fingerprint))
+            self.user_gpg.import_keys(
+                self.admin_gpg.export_keys(user.fingerprint)
+            )
             self.user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
         for user in self.invalid_users:
-            self.invalid_gpg.import_keys(self.invalid_gpg.export_keys(user.fingerprint))
+            self.invalid_gpg.import_keys(
+                self.invalid_gpg.export_keys(user.fingerprint)
+            )
             self.invalid_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
         for user in self.new_users:
-            self.new_user_gpg.import_keys(self.new_user_gpg.export_keys(user.fingerprint))
+            self.new_user_gpg.import_keys(
+                self.new_user_gpg.export_keys(user.fingerprint)
+            )
             self.new_user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
 
     def tearDown(self):
@@ -138,7 +156,9 @@ class TestServer(unittest.TestCase):
             passphrase=user.password,
         )
         payload = {
-            "csr": csr.public_bytes(serialization.Encoding.PEM).decode("utf-8"),
+            "csr": csr.public_bytes(serialization.Encoding.PEM).decode(
+                "utf-8"
+            ),
             "signature": str(sig),
             "lifetime": 60,
             "type": "CERTIFICATE",
@@ -162,7 +182,9 @@ class TestServer(unittest.TestCase):
             passphrase=user.password,
         )
         payload = {
-            "csr": csr.public_bytes(serialization.Encoding.PEM).decode("utf-8"),
+            "csr": csr.public_bytes(serialization.Encoding.PEM).decode(
+                "utf-8"
+            ),
             "signature": str(sig),
             "lifetime": 60,
             "type": "CERTIFICATE",

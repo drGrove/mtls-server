@@ -10,8 +10,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-import storage
-from cert_processor import CertProcessorMismatchedPublicKeyError
+from mtls_server import storage
+from mtls_server.cert_processor import CertProcessorMismatchedPublicKeyError
+from mtls_server.config import Config
 
 
 logging.disable(logging.CRITICAL)
@@ -86,7 +87,9 @@ def update_cert(old_cert, csr, pkey, upkey):
         .not_valid_after(lifetime_delta)
     )
     if len(alts) > 0:
-        cert = cert.add_extension(x509.SubjectAlternativeName(alts), critical=False)
+        cert = cert.add_extension(
+            x509.SubjectAlternativeName(alts), critical=False
+        )
     cert = cert.sign(
         private_key=pkey, algorithm=hashes.SHA256(), backend=default_backend()
     )
@@ -106,7 +109,9 @@ def generate_csr(common_name, email, key):
                     x509.NameAttribute(NameOID.COUNTRY_NAME, country),
                     x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state),
                     x509.NameAttribute(NameOID.LOCALITY_NAME, locality),
-                    x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
+                    x509.NameAttribute(
+                        NameOID.ORGANIZATION_NAME, organization_name
+                    ),
                     x509.NameAttribute(NameOID.COMMON_NAME, common_name),
                     x509.NameAttribute(NameOID.EMAIL_ADDRESS, email),
                 ]
@@ -126,8 +131,8 @@ class TestSQLiteStorageEngine(unittest.TestCase):
             db_path=:memory:
             """
         )
-
-        self.engine = storage.SQLiteStorageEngine(config)
+        Config.init_config(config=config)
+        self.engine = storage.SQLiteStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
@@ -153,7 +158,9 @@ class TestSQLiteStorageEngine(unittest.TestCase):
 
         cur.execute(query, [common_name])
         self.assertIsNone(cur.fetchone())
-        cert = generate_fake_cert(common_name, pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            common_name, pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "ABCDEFGH")
 
         cur.execute(query, [common_name])
@@ -167,14 +174,20 @@ class TestSQLiteStorageEngine(unittest.TestCase):
         """
 
         # Saving a certificate for the first time
-        cert = generate_fake_cert("user@host1", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host1", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "ABCDEFGH")
 
         # Superceeding a revoked certificate
-        cert = generate_fake_cert("user@host3", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host3", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "ABCDEFGH")
         self.engine.revoke_cert(cert.serial_number)
-        cert = generate_fake_cert("user@host3", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host3", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "ABCDEFGH")
 
     def test_save_cert_failure_conditions(self):
@@ -196,9 +209,13 @@ class TestSQLiteStorageEngine(unittest.TestCase):
             self.engine.save_cert(cert, "ABCDEFGH")
 
         # Conflicting CommonName with still-valid certificate
-        cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host2", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "ABCDEFGH")
-        cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host2", pkey=self.pkey, upkey=self.upkey
+        )
         with self.assertRaises(storage.StorageEngineCertificateConflict):
             self.engine.save_cert(cert, "ABCDEFGH")
 
@@ -253,8 +270,8 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
             host = localhost
             """
         )
-
-        self.engine = storage.PostgresqlStorageEngine(config)
+        Config.init_config(config=config)
+        self.engine = storage.PostgresqlStorageEngine(Config)
         cur = self.engine.conn.cursor()
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
@@ -281,7 +298,9 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         cur.execute(query, [common_name])
         self.assertIsNone(cur.fetchone())
 
-        cert = generate_fake_cert(common_name, pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            common_name, pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "ABCDEFGH")
 
         cur.execute(query, [common_name])
@@ -295,7 +314,9 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         """
 
         # Saving a certificate for the first time
-        cert = generate_fake_cert("user@host1", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host1", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "ABCDEFGH")
 
         # Superceeding an expired certificate
@@ -303,14 +324,20 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
             "user@host2", expired=True, pkey=self.pkey, upkey=self.upkey
         )
         self.engine.save_cert(cert, "ABCDEFGH")
-        cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host2", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "39DL2LSL")
 
         # Superceeding a revoked certificate
-        cert = generate_fake_cert("user@host3", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host3", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "40LD0DL")
         self.engine.revoke_cert(cert.serial_number)
-        cert = generate_fake_cert("user@host3", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host3", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "40LD0DL")
 
     def test_save_cert_failure_conditions(self):
@@ -332,9 +359,13 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
             self.engine.save_cert(cert, "ABCDEFGH")
 
         # Conflicting CommonName with still-valid certificate
-        cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host2", pkey=self.pkey, upkey=self.upkey
+        )
         self.engine.save_cert(cert, "39DL2LSL")
-        cert = generate_fake_cert("user@host2", pkey=self.pkey, upkey=self.upkey)
+        cert = generate_fake_cert(
+            "user@host2", pkey=self.pkey, upkey=self.upkey
+        )
         with self.assertRaises(storage.StorageEngineCertificateConflict):
             self.engine.save_cert(cert, "39DL2LSL")
 
@@ -359,7 +390,11 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         Verify that a certificate can be updated.
         """
         old_cert = generate_fake_cert(
-            "user@host", serial_number=123, pkey=self.pkey, upkey=self.upkey, expired=True
+            "user@host",
+            serial_number=123,
+            pkey=self.pkey,
+            upkey=self.upkey,
+            expired=True,
         )
         self.engine.save_cert(old_cert, "ABCDEFGH")
         csr = generate_csr("user@host", "test@example.com", self.upkey)

@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 import unittest
@@ -5,13 +6,13 @@ import unittest
 from configparser import ConfigParser
 import gnupg
 
-from handler import Handler
-from sync import Sync
-from utils import User
-from utils import gen_passwd
-from utils import gen_pgp_key
-from utils import generate_csr
-from utils import generate_key
+from mtls_server.handler import Handler
+from mtls_server.config import Config
+from mtls_server.utils import User
+from mtls_server.utils import gen_passwd
+from mtls_server.utils import generate_key
+
+logging.disable(logging.CRITICAL)
 
 
 class TestSync(unittest.TestCase):
@@ -50,13 +51,24 @@ class TestSync(unittest.TestCase):
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
             )
         )
+        Config.init_config(config=self.config)
         self.new_user_gpg = gnupg.GPG(gnupghome=self.NEW_USER_GNUPGHOME.name)
         self.new_admin_gpg = gnupg.GPG(gnupghome=self.NEW_ADMIN_GNUPGHOME.name)
         self.new_users = [
-            User("user@host", gen_passwd(), generate_key(), gpg=self.new_user_gpg)
+            User(
+                "user@host",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_user_gpg,
+            )
         ]
         self.new_admins = [
-            User("admin@host", gen_passwd(), generate_key(), gpg=self.new_admin_gpg)
+            User(
+                "admin@host",
+                gen_passwd(),
+                generate_key(),
+                gpg=self.new_admin_gpg,
+            )
         ]
 
     def tearDown(self):
@@ -73,11 +85,13 @@ class TestSync(unittest.TestCase):
             fingerprint = user.fingerprint
             pgp_armored_key = self.new_user_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath=seed_subpath, fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath=seed_subpath,
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(self.config)
+        handler = Handler(Config)
         user_gpg = handler.cert_processor.user_gpg
         stored_fingerprints = []
         for key in user_gpg.list_keys():
@@ -92,11 +106,13 @@ class TestSync(unittest.TestCase):
             fingerprint = admin.fingerprint
             pgp_armored_key = self.new_admin_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath=seed_subpath, fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath=seed_subpath,
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(self.config)
+        handler = Handler(Config)
         admin_gpg = handler.cert_processor.admin_gpg
         stored_fingerprints = []
         for key in admin_gpg.list_keys():
@@ -111,7 +127,9 @@ class TestSync(unittest.TestCase):
             fingerprint = user.fingerprint
             pgp_armored_key = self.new_user_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath="user", fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath="user",
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
@@ -119,11 +137,13 @@ class TestSync(unittest.TestCase):
             fingerprint = admin.fingerprint
             pgp_armored_key = self.new_admin_gpg.export_keys(fingerprint)
             fingerprint_file = "{base}/{subpath}/{fingerprint}.asc".format(
-                base=self.SEED_DIR.name, subpath="admin", fingerprint=fingerprint
+                base=self.SEED_DIR.name,
+                subpath="admin",
+                fingerprint=fingerprint,
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(self.config)
+        handler = Handler(Config)
         user_gpg = handler.cert_processor.user_gpg
         admin_gpg = handler.cert_processor.admin_gpg
         user_stored_fingerprints = []

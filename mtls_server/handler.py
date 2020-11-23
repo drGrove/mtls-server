@@ -1,66 +1,59 @@
 import os
-from configparser import ConfigParser
 import json
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
 
-from cert_processor import CertProcessor
-from cert_processor import CertProcessorInvalidSignatureError
-from cert_processor import CertProcessorKeyNotFoundError
-from cert_processor import CertProcessorMismatchedPublicKeyError
-from cert_processor import CertProcessorUntrustedSignatureError
-from cert_processor import CertProcessorNotAdminUserError
-from cert_processor import CertProcessorNoPGPKeyFoundError
-from logger import logger
-from sync import Sync
-from utils import error_response
-from utils import write_sig_to_file
-from utils import get_config_from_file
+from .cert_processor import CertProcessor
+from .cert_processor import CertProcessorInvalidSignatureError
+from .cert_processor import CertProcessorKeyNotFoundError
+from .cert_processor import CertProcessorMismatchedPublicKeyError
+from .cert_processor import CertProcessorNoPGPKeyFoundError
+from .cert_processor import CertProcessorNotAdminUserError
+from .cert_processor import CertProcessorUntrustedSignatureError
+from .logger import logger
+from .sync import Sync
+from .utils import error_response
+from .utils import write_sig_to_file
 
 
-class GPGKeyNotFoundException(Exception):
+class PGPKeyNotFoundException(Exception):
+    pass
+
+
+class PGPTrustException(Exception):
     pass
 
 
 class Handler:
-    def __init__(self, config=None):
-        if config is None:
-            config = get_config_from_file("config.ini")
-        self.config = config
+    def __init__(self, config):
         # Seed the trust stores
-        seed = os.environ.get('SEED_ON_INIT', "1")
+        seed = os.environ.get("SEED_ON_INIT", "1")
         if seed == "1":
-            Sync(self.config).seed()
+            Sync(config).seed()
         self.cert_processor = CertProcessor(config)
+        self.config = config
 
     def create_cert(self, body):
         """Create a certificate."""
         lifetime = int(body["lifetime"])
-        min_lifetime = int(self.config.get("mtls", "min_lifetime", fallback=60))
-        max_lifetime = int(self.config.get("mtls", "max_lifetime", fallback=0))
+        min_lifetime = self.config.get_int("mtls", "min_lifetime", 60)
+        max_lifetime = self.config.get_int("mtls", "max_lifetime", 0)
         if lifetime < min_lifetime:
             logger.info(
-                "User requested lifetime less than minimum. {} < {}".format(
-                    lifetime, min_lifetime
-                )
+                f"User requested lifetime less than minimum. {lifetime} < {min_lifetime}"
             )
             return error_response(
-                "lifetime must be greater than {} seconds".format(min_lifetime)
+                f"lifetime must be greater than {min_lifetime} seconds"
             )
         if max_lifetime != 0:
             if lifetime > max_lifetime:
                 logger.info(
-                    "User requested lifetime greater than maximum. {} < {}".format(
-                        lifetime, max_lifetime
-                    )
+                    f"User requested lifetime greater than maximum. {lifetime} < {max_lifetime}"
                 )
                 return error_response(
-                    "lifetime must be less than {} seconds".format(max_lifetime)
+                    f"lifetime must be less than {max_lifetime} seconds"
                 )
         csr_str = body["csr"]
         csr = self.cert_processor.get_csr(csr_str)
@@ -72,7 +65,9 @@ class Handler:
             logger.info("create_cert: write to temp sig file")
             sig_path = write_sig_to_file(body["signature"])
             logger.info("create_cert: get fingerprint")
-            fingerprint = self.cert_processor.verify(csr_public_bytes, sig_path)
+            fingerprint = self.cert_processor.verify(
+                csr_public_bytes, sig_path
+            )
             logger.info("create_cert: remove sig file")
             os.remove(sig_path)
         except CertProcessorUntrustedSignatureError as e:
@@ -89,9 +84,15 @@ class Handler:
             return error_response("Invalid CSR")
         cert = None
         try:
-            logger.info(f"create_cert: generating certificate for: {fingerprint}")
-            cert = self.cert_processor.generate_cert(csr, lifetime, fingerprint)
-            logger.info(f"create_cert: sending certificate to client for: {fingerprint}")
+            logger.info(
+                f"create_cert: generating certificate for: {fingerprint}"
+            )
+            cert = self.cert_processor.generate_cert(
+                csr, lifetime, fingerprint
+            )
+            logger.info(
+                f"create_cert: sending certificate to client for: {fingerprint}"
+            )
             return json.dumps({"cert": cert.decode("UTF-8")}), 200
         except CertProcessorKeyNotFoundError:
             logger.critical("Key missing. Service not properly initialized")
@@ -123,21 +124,20 @@ class Handler:
         Returns:
             (json, int): a tuple of the json response and http status code.
         """
-        is_admin = False
         fingerprint = None
         sig_path = write_sig_to_file(body["signature"])
         try:
             fingerprint = self.cert_processor.admin_verify(
                 json.dumps(body["query"]).encode("UTF-8"), sig_path
             )
-            is_admin = True
             logger.info(
-                "Admin {adminfp} revoking certificate with query {query}".format(
-                    adminfp=fingerprint, query=json.dumps(body["query"])
-                )
+                f"Admin {fingerprint} revoking certificate with query {json.dumps(body['query'])}"
             )
             os.remove(sig_path)
-        except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
+        except (
+            CertProcessorInvalidSignatureError,
+            CertProcessorUntrustedSignatureError,
+        ):
             try:
                 fingerprint = self.cert_processor.verify(
                     json.dumps(body["query"]).encode("UTF-8"), sig_path
@@ -173,7 +173,10 @@ class Handler:
             fingerprint = self.cert_processor.admin_verify(
                 body["fingerprint"].encode("UTF-8"), sig_path
             )
-        except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
+        except (
+            CertProcessorInvalidSignatureError,
+            CertProcessorUntrustedSignatureError,
+        ):
             os.remove(sig_path)
             logger.error(
                 "Invalid signature on adding fingerprint: {fp}".format(
@@ -188,30 +191,41 @@ class Handler:
 
         try:
             if is_admin:
-                has_user = self.has_user(self.cert_processor.admin_gpg, fingerprint)
+                has_user = self.has_user(
+                    self.cert_processor.admin_gpg, fingerprint
+                )
                 if not has_user:
                     logger.info(
-                        "Admin {adminfp} adding admin user {userfp}".format(
-                            adminfp=fingerprint, userfp=body["fingerprint"]
-                        )
+                        f"Admin {fingerprint} adding admin user {body['fingerprint']}"
                     )
                     # Add a user to the admin trust store
-                    self.add_and_trust_user(self.cert_processor.admin_gpg, fingerprint)
+                    self.add_and_trust_user(
+                        self.cert_processor.admin_gpg, fingerprint
+                    )
 
             has_user = self.has_user(self.cert_processor.user_gpg, fingerprint)
 
             if not has_user:
                 # Add the user to the user trust store
                 logger.info(
-                    "Admin {adminfp} adding admin user {userfp}".format(
-                        adminfp=fingerprint, userfp=body["fingerprint"]
-                    )
+                    f"Admin {fingerprint} adding admin user {body['fingerprint']}"
                 )
-                self.add_and_trust_user(self.cert_processor.user_gpg, fingerprint)
+                self.add_and_trust_user(
+                    self.cert_processor.user_gpg, fingerprint
+                )
             return json.dumps({"msg": "success"}), 201
-        except GPGKeyNotFoundException:
+        except PGPKeyNotFoundException:
             return (
-                json.dumps({"msg": "Key not found on keyserver. Could not import"}),
+                json.dumps(
+                    {"msg": "Key not found on keyserver. Could not import"}
+                ),
+                422,
+            )
+        except PGPTrustException:
+            return (
+                json.dumps(
+                    {"msg": "Key could not be trusted"}
+                ),
                 422,
             )
 
@@ -222,13 +236,22 @@ class Handler:
         return True
 
     def add_and_trust_user(self, gpg, fingerprint):
+        keyserver = self.config.get("gnupg", "keyserver", "keyserver.ubuntu.com")
+        logger.info(f"Retrieving key {fingerprint} from {keyserver}")
         result = self.cert_processor.user_gpg.recv_keys(
-            self.config.get("gnupg", "keyserver", fallback="keyserver.ubuntu.com"),
+            keyserver,
             fingerprint,
         )
         if result.count is None or result.count == 0:
-            raise GPGKeyNotFoundException()
-        self.cert_processor.user_gpg.trust_keys([fingerprint], "TRUST_ULTIMATE")
+            raise PGPKeyNotFoundException()
+
+        logger.info(f"Trusting {fingerprint}")
+        try:
+            result = self.cert_processor.user_gpg.trust_keys(
+                [fingerprint], "TRUST_ULTIMATE"
+            )
+        except ValueError:
+            raise PGPTrustException()
 
     def remove_user(self, body, is_admin=False):
         """Remove a user or admin."""
@@ -243,12 +266,13 @@ class Handler:
                     adminfp=fingerprint, userfp=body["fingerprint"]
                 )
             )
-        except (CertProcessorInvalidSignatureError, CertProcessorUntrustedSignatureError):
+        except (
+            CertProcessorInvalidSignatureError,
+            CertProcessorUntrustedSignatureError,
+        ):
             os.remove(sig_path)
             logger.error(
-                "Invalid signature on adding fingerprint: {fp}".format(
-                    fp=body["fingerprint"]
-                )
+                f"Invalid signature on adding fingerprint: {body['fingerprint']}"
             )
             return error_response("Unauthorized", 403)
         # Remove signature file
