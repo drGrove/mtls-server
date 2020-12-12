@@ -2,15 +2,13 @@ SHELL := /bin/bash
 DOCKER_REGISTRY ?= ""
 TAG ?= latest
 
-PIP_ENV := $(shell pipenv --venv)
-
 .PHONY: setup
 setup:
-	@pipenv install
+	@pipenv install --three
 
 .PHONY: setup-dev
 setup-dev: set-hooks gen-secrets-folder
-	@pipenv install --dev
+	@pipenv install --dev --three
 
 .PHONY: requirements.txt
 requirements.txt:
@@ -28,7 +26,7 @@ gen-secrets-folder:
 
 .PHONY: create-ca
 create-ca: gen-secrets-folder
-	@$(PIP_ENV)/bin/python3 ./scripts/create-ca
+	@pipenv run python3 ./scripts/create-ca
 
 .PHONY: create-pgp-key
 create-pgp-key: gen-secrets-folder
@@ -45,11 +43,11 @@ lint:
 
 .PHONY: coverage
 coverage:
-	@$(PIP_ENV)/bin/coverage report -m
+	@pipenv run coverage report -m
 
 .PHONY: coveralls
 coveralls:
-	@$(PIP_ENV)/bin/coveralls
+	@pipenv run coveralls
 
 .PHONY: test
 test:
@@ -108,8 +106,7 @@ run-postgres:
 
 .PHONY: run
 run:
-	@. $(PIP_ENV)/bin/activate
-	@$(PIP_ENV)/bin/python3 server.py
+	@pipenv run python3 server.py
 
 .PHONY: run-prod
 run-prod: build-image run-postgres
@@ -142,4 +139,5 @@ stop-prod:
 
 .PHONY: clean
 clean:
-	@rm -r $(PIP_ENV)
+	pipenv clean
+	rm -r build dist mtls_server.egg-info
