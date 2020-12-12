@@ -4,7 +4,8 @@ desc = "A short-lived certificate tool based on the Zero Trust network mode"
 
 setup(
     name="mtls-server",
-    author="Danny Grove <danny@drgrovellc.com>",
+    author="Danny Grove",
+    author_email="danny@drgrovellc.com",
     url="https://github.com/drGrove/mtls-server",
     description=desc,
     long_description=open("README.md").read(),
@@ -32,7 +33,6 @@ setup(
     setup_requires=["setuptools_scm"],
     use_scm_version=True,
     packages=find_packages(exclude=["test"]),
-    package_data={"mtls": ["share/*"]},
     entry_points={
         "console_scripts": [
             "mtls-server = mtls_server.server:main"
