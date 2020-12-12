@@ -402,7 +402,7 @@ class CertProcessor:
             critical=True,
         )
         cert = cert.add_extension(
-            x509.ExtendedKeyUsage([X509.oid.ExtendedKeyUsageOID.CLIENT_AUTH)],
+            x509.ExtendedKeyUsage([X509.oid.ExtendedKeyUsageOID.CLIENT_AUTH]),
             critical=True,
         )
 
