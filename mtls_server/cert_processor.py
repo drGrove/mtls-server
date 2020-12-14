@@ -398,7 +398,7 @@ class CertProcessor:
             x509.CRLDistributionPoints([crl_dp]), critical=False
         )
         cert = cert.add_extension(
-            x509.BasicConstraints(ca=False),
+            x509.BasicConstraints(ca=False, path_length=None),
             critical=True,
         )
         cert = cert.add_extension(
