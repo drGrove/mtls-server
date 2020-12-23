@@ -397,6 +397,14 @@ class CertProcessor:
         cert = cert.add_extension(
             x509.CRLDistributionPoints([crl_dp]), critical=False
         )
+        cert = cert.add_extension(
+            x509.BasicConstraints(ca=False, path_length=None),
+            critical=True,
+        )
+        cert = cert.add_extension(
+            x509.ExtendedKeyUsage([X509.oid.ExtendedKeyUsageOID.CLIENT_AUTH]),
+            critical=True,
+        )
 
         logger.info(f"generate_cert: Signing certificate for {fingerprint}")
         cert = cert.sign(
