@@ -141,3 +141,8 @@ stop-prod:
 clean:
 	pipenv clean
 	rm -r build dist mtls_server.egg-info
+
+.PHONY: .drone.yml
+.drone.yml:
+	drone jsonnet --stream
+	drone sign --save drGrove/mtls-server
