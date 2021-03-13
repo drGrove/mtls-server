@@ -11,8 +11,8 @@ sys.path.extend([
     os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 ])
 
-from cert_processor import CertProcessor
 from configparser import ConfigParser
+from mtls_server.cert_processor import CertProcessor
 
 config = ConfigParser()
 config_path = os.path.abspath(
