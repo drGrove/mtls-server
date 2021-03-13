@@ -80,7 +80,7 @@ local test(python_version) = step(
   'test',
   'python:' + python_version + '-slim-buster',
   commands=[
-    'apt update && apt install make cmake -y',
+    'apt update && apt install make cmake gnupg -y',
     'pip3 install pipenv',
     'make setup-dev',
     'cp config.ini.example config.ini',

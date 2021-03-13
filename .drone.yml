@@ -25,7 +25,7 @@ steps:
 - name: test
   image: python:3.9-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -66,7 +66,7 @@ steps:
 - name: test
   image: python:3.9-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -109,7 +109,7 @@ steps:
 - name: test
   image: python:3.9-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -150,7 +150,7 @@ steps:
 - name: test
   image: python:3.8-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -191,7 +191,7 @@ steps:
 - name: test
   image: python:3.8-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -234,7 +234,7 @@ steps:
 - name: test
   image: python:3.8-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -275,7 +275,7 @@ steps:
 - name: test
   image: python:3.7-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -316,7 +316,7 @@ steps:
 - name: test
   image: python:3.7-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -359,7 +359,7 @@ steps:
 - name: test
   image: python:3.7-slim-buster
   commands:
-  - apt update && apt install make cmake -y
+  - apt update && apt install make cmake gnupg -y
   - pip3 install pipenv
   - make setup-dev
   - cp config.ini.example config.ini
@@ -492,6 +492,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 450e77a0959e5f71fb354fb609d377518c1d3ac3c0ed1d89e1487573551400b4
+hmac: e5631e1c43d1d6ee98141d2aea3d8724bdccd272d18c66096305888f1de2c488
 
 ...
