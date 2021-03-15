@@ -19,8 +19,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.9-slim-buster
@@ -30,8 +31,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -64,8 +64,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.9-slim-buster
@@ -75,8 +76,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -111,8 +111,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.9-slim-buster
@@ -122,8 +123,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -156,8 +156,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.8-slim-buster
@@ -167,8 +168,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -201,8 +201,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.8-slim-buster
@@ -212,8 +213,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -248,8 +248,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.8-slim-buster
@@ -259,8 +260,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -293,8 +293,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.7-slim-buster
@@ -304,8 +305,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -338,8 +338,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.7-slim-buster
@@ -349,8 +350,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -385,8 +385,9 @@ steps:
   image: postgres:12
   detach: true
   environment:
+    POSTGRES_DATABASE: mtls
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: mtls
+    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.7-slim-buster
@@ -396,8 +397,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test.dev coverage
-  - make coveralls
+  - make test.dev coverage coveralls
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
@@ -528,6 +528,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 96bde55e503e1280126fb4b5f5c50be6cff69b9cc194ed43a8024e14629fdf51
+hmac: 885f1367fa8b91b308f0d4f0e312f5b37d666a40227df629e6a5aaa15b685932
 
 ...

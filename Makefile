@@ -52,12 +52,13 @@ coveralls:
 .PHONY: test
 test:
 ifeq "${CI}" ""
+	-$(MAKE) stop-postgres
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	-@coverage run -m unittest -v
+	coverage run -m unittest -v
 ifeq "${CI}" ""
-		@docker stop mtls-postgres
+	$(MAKE) stop-postgres
 endif
 
 .PHONY: test.dev
@@ -72,7 +73,7 @@ ifeq "${CI}" ""
 endif
 	-@coverage run -m unittest $(NAME) -v
 ifeq "${CI}" ""
-		@docker stop mtls-postgres
+	$(MAKE) stop-postgres
 endif
 
 .PHONY: test-by-name.dev
@@ -103,6 +104,10 @@ run-postgres:
 		-e POSTGRES_HOST_AUTH_METHOD=trust \
 		-p 5432:5432 \
 		postgres
+
+.PHONY: stop-postgres
+stop-postgres:
+	-docker stop mtls-postgres
 
 .PHONY: run
 run:

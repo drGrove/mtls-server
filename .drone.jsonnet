@@ -71,7 +71,8 @@ local postgresql = step(
   'postgres:12',
   environment={
     POSTGRES_PASSWORD: 'mtls',
-    POSTGRES_USER: 'mtls',
+    POSTGRES_USER: 'postgres',
+    POSTGRES_DATABASE: 'mtls',
   },
   detach=true,
 );
@@ -91,8 +92,7 @@ local test(python_version) = step(
     'make setup-dev',
     'cp config.ini.example config.ini',
     'make create-ca',
-    'make test.dev coverage',
-    'make coveralls',
+    'make test.dev coverage coveralls',
   ],
   depends_on=[
     clone.name,
