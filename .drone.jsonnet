@@ -1,5 +1,6 @@
 local images = {
   kaniko: 'gcr.io/kaniko-project/executor:v1.5.1-debug@sha256:e00dfdd4a44097867c8ef671e5a7f3e31d94bd09406dbdfba8a13a63fc6b8060',
+  postgres: 'postgres:12',
   python: 'python:3.9-slim-buster',
 };
 
@@ -68,11 +69,11 @@ local clone = step(
 
 local postgresql = step(
   'postgresql',
-  'postgres:12',
+  images.postgres,
   environment={
     POSTGRES_PASSWORD: 'mtls',
     POSTGRES_USER: 'postgres',
-    POSTGRES_DATABASE: 'mtls',
+    POSTGRES_DB: 'mtls',
   },
   detach=true,
 );

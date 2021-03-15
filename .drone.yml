@@ -19,7 +19,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -64,7 +64,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -111,7 +111,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -156,7 +156,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -201,7 +201,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -248,7 +248,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -293,7 +293,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -338,7 +338,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -385,7 +385,7 @@ steps:
   image: postgres:12
   detach: true
   environment:
-    POSTGRES_DATABASE: mtls
+    POSTGRES_DB: mtls
     POSTGRES_PASSWORD: mtls
     POSTGRES_USER: postgres
 
@@ -528,6 +528,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 885f1367fa8b91b308f0d4f0e312f5b37d666a40227df629e6a5aaa15b685932
+hmac: 9966301da86d6729d4c5f335b867e0857bffc74da092cce5effd605fc8578938
 
 ...
