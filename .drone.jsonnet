@@ -81,6 +81,9 @@ local test(python_version) = step(
   'python:' + python_version + '-slim-buster',
   environment={
     POSTGRES_HOST: 'postgresql',
+    COVERALLS_REPO_TOKEN: {
+      from_secret: 'COVERALLS_REPO_TOKEN',
+    },
   },
   commands=[
     'apt update && apt install make cmake gnupg -y',

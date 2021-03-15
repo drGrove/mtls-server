@@ -33,6 +33,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -76,6 +78,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -121,6 +125,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -164,6 +170,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -207,6 +215,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -252,6 +262,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -295,6 +307,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -338,6 +352,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -383,6 +399,8 @@ steps:
   - make test.dev coverage
   - make coveralls
   environment:
+    COVERALLS_REPO_TOKEN:
+      from_secret: COVERALLS_REPO_TOKEN
     POSTGRES_HOST: postgresql
   depends_on:
   - clone
@@ -510,6 +528,6 @@ trigger:
 
 ---
 kind: signature
-hmac: f0233894328add5b9d662a43c088177d12172d4fcf908df5cd83543c92e19b53
+hmac: 96bde55e503e1280126fb4b5f5c50be6cff69b9cc194ed43a8024e14629fdf51
 
 ...
