@@ -85,7 +85,7 @@ local test(python_version) = step(
     'make setup-dev',
     'cp config.ini.example config.ini',
     'make create-ca',
-    'make test coverage',
+    'make test.dev coverage',
     'make coveralls',
   ],
   depends_on=[
