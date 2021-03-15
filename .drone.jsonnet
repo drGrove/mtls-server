@@ -79,6 +79,9 @@ local postgresql = step(
 local test(python_version) = step(
   'test',
   'python:' + python_version + '-slim-buster',
+  environment={
+    POSTGRES_HOST: 'postgresql',
+  },
   commands=[
     'apt update && apt install make cmake gnupg -y',
     'pip3 install pipenv',

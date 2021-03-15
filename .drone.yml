@@ -32,6 +32,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -73,6 +75,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -116,6 +120,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -157,6 +163,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -198,6 +206,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -241,6 +251,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -282,6 +294,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -323,6 +337,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -366,6 +382,8 @@ steps:
   - make create-ca
   - make test.dev coverage
   - make coveralls
+  environment:
+    POSTGRES_HOST: postgresql
   depends_on:
   - clone
 
@@ -492,6 +510,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 1a16f140f2ec5a7cf286c3824b2b0b3271bfa1172408f52a2c9e6b659b456327
+hmac: f0233894328add5b9d662a43c088177d12172d4fcf908df5cd83543c92e19b53
 
 ...

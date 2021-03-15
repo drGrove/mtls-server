@@ -1,6 +1,7 @@
 import configparser
 import datetime
 import logging
+import os
 import unittest
 
 from cryptography import x509
@@ -16,6 +17,8 @@ from mtls_server.config import Config
 
 
 logging.disable(logging.CRITICAL)
+
+POSTGRES_HOST = os.environ.get('POSTGRES_HOST', 'localhost')
 
 
 def generate_fake_cert(
@@ -259,7 +262,7 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
     def setUp(self):
         config = configparser.ConfigParser()
         config.read_string(
-            """
+            f"""
             [storage]
             engine=postgres
 
@@ -267,7 +270,7 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
             database = mtls
             user = postgres
             password = postgres
-            host = localhost
+            host = {POSTGRES_HOST}
             """
         )
         Config.init_config(config=config)
