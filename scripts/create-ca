@@ -11,19 +11,18 @@ sys.path.extend([
     os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 ])
 
-from configparser import ConfigParser
 from mtls_server.cert_processor import CertProcessor
+from mtls_server.config import Config
 
-config = ConfigParser()
-config_path = os.path.abspath(
+CONFIG_PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
         '..',
         'config.ini'
     )
 )
-config.read(config_path)
-cert_processor = CertProcessor(config)
+Config.init_config(CONFIG_PATH)
+cert_processor = CertProcessor(Config)
 
 key = cert_processor.get_ca_key()
 cert_processor.get_ca_cert(key)

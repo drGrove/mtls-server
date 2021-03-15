@@ -30,7 +30,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -71,7 +71,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -114,7 +114,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -155,7 +155,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -196,7 +196,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -239,7 +239,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -280,7 +280,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -321,7 +321,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -364,7 +364,7 @@ steps:
   - make setup-dev
   - cp config.ini.example config.ini
   - make create-ca
-  - make test coverage
+  - make test.dev coverage
   - make coveralls
   depends_on:
   - clone
@@ -492,6 +492,6 @@ trigger:
 
 ---
 kind: signature
-hmac: e5631e1c43d1d6ee98141d2aea3d8724bdccd272d18c66096305888f1de2c488
+hmac: 1a16f140f2ec5a7cf286c3824b2b0b3271bfa1172408f52a2c9e6b659b456327
 
 ...
