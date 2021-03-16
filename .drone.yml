@@ -20,8 +20,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.9-slim-buster
@@ -65,8 +65,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.9-slim-buster
@@ -112,8 +112,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.9-slim-buster
@@ -157,8 +157,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.8-slim-buster
@@ -202,8 +202,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.8-slim-buster
@@ -249,8 +249,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.8-slim-buster
@@ -294,8 +294,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.7-slim-buster
@@ -339,8 +339,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.7-slim-buster
@@ -386,8 +386,8 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
+    POSTGRES_HOST_ATUH_METHOD: trust
     POSTGRES_PASSWORD: mtls
-    POSTGRES_USER: postgres
 
 - name: test
   image: python:3.7-slim-buster
@@ -528,6 +528,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 9966301da86d6729d4c5f335b867e0857bffc74da092cce5effd605fc8578938
+hmac: 35095259002d5fa58b536322be60f1fbd8038c9584adc0a0691a2e42cb770222
 
 ...

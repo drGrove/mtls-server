@@ -72,8 +72,8 @@ local postgresql = step(
   images.postgres,
   environment={
     POSTGRES_PASSWORD: 'mtls',
-    POSTGRES_USER: 'postgres',
     POSTGRES_DB: 'mtls',
+    POSTGRES_HOST_ATUH_METHOD: 'trust',
   },
   detach=true,
 );
