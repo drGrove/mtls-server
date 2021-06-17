@@ -88,7 +88,7 @@ local test(python_version) = step(
     },
   },
   commands=[
-    'apt update && apt install make cmake gnupg -y',
+    'apt update && apt install -y make cmake gnupg git postgresql-client',
     'pip3 install pipenv',
     'make setup-dev',
     'cp config.ini.example config.ini',
