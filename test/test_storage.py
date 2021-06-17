@@ -18,7 +18,7 @@ from mtls_server.config import Config
 
 logging.disable(logging.CRITICAL)
 
-POSTGRES_HOST = os.environ.get('POSTGRES_HOST', 'localhost')
+POSTGRES_HOST = os.environ.get('PGHOST', 'localhost')
 
 
 def generate_fake_cert(

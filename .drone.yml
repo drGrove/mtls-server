@@ -20,7 +20,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -35,7 +35,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -65,7 +65,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -80,7 +80,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -112,7 +112,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -127,7 +127,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -157,7 +157,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -172,7 +172,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -202,7 +202,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -217,7 +217,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -249,7 +249,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -264,7 +264,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -294,7 +294,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -309,7 +309,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -339,7 +339,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -354,7 +354,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -386,7 +386,7 @@ steps:
   detach: true
   environment:
     POSTGRES_DB: mtls
-    POSTGRES_HOST_ATUH_METHOD: trust
+    POSTGRES_HOST_AUTH_METHOD: trust
     POSTGRES_PASSWORD: mtls
 
 - name: test
@@ -401,7 +401,7 @@ steps:
   environment:
     COVERALLS_REPO_TOKEN:
       from_secret: COVERALLS_REPO_TOKEN
-    POSTGRES_HOST: postgresql
+    PGHOST: postgresql
   depends_on:
   - clone
 
@@ -528,6 +528,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 35095259002d5fa58b536322be60f1fbd8038c9584adc0a0691a2e42cb770222
+hmac: 04f1ec31e59684e09341722970cc63c054d2292f7825536f6722a9512ceb685d
 
 ...

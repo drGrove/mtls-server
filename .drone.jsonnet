@@ -73,7 +73,7 @@ local postgresql = step(
   environment={
     POSTGRES_PASSWORD: 'mtls',
     POSTGRES_DB: 'mtls',
-    POSTGRES_HOST_ATUH_METHOD: 'trust',
+    POSTGRES_HOST_AUTH_METHOD: 'trust',
   },
   detach=true,
 );
@@ -82,7 +82,7 @@ local test(python_version) = step(
   'test',
   'python:' + python_version + '-slim-buster',
   environment={
-    POSTGRES_HOST: 'postgresql',
+    PGHOST: 'postgresql',
     COVERALLS_REPO_TOKEN: {
       from_secret: 'COVERALLS_REPO_TOKEN',
     },

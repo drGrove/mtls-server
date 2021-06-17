@@ -279,7 +279,7 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
             """.format(
                 user_gnupghome=self.USER_GNUPGHOME.name,
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
-                postgres_host=os.environ.get('POSTGRES_HOST', 'localhost')
+                postgres_host=os.environ.get('PGHOST', 'localhost')
             )
         )
         Config.init_config(config=config)
