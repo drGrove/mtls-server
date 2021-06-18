@@ -1,5 +1,6 @@
 local images = {
-  kaniko: 'gcr.io/kaniko-project/executor:v1.5.1-debug@sha256:e00dfdd4a44097867c8ef671e5a7f3e31d94bd09406dbdfba8a13a63fc6b8060',
+  // https://github.com/drGrove/drone-kaniko/tree/v0.7.0
+  kaniko: 'drGrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108',
   postgres: 'postgres:12',
   python: 'python:3.9-slim-buster',
 };
@@ -115,7 +116,7 @@ local get_image_tag = step(
   images.python,
   commands=[
     'apt update && apt install -y git',
-    'git describe --tags > /tmp/image_tag',
+    'git describe --tags > .tags',
   ],
   depends_on=[
     clone.name,
@@ -125,21 +126,14 @@ local get_image_tag = step(
 local build_with_kaniko(push=true) = step(
   'Build',
   images.kaniko,
-  environment={
-    [if !push then 'EXTRA_ARGS']: '--no-push',
+  settings={
+    [if push then 'repo']: 'drgrove/mtls-server',
+    reproducible: true,
+    username: if push then 'drgrovebot' else 'drgrovero',
+    password: {
+      from_secret: if push then 'drgrovebot' else 'drgrovero',
+    },
   },
-  commands=[
-    |||
-      /kaniko/executor \\
-        --cleanup \\
-        --reproducible \\
-        --cache=true \\
-        --cache-repo="drgrove/mtls-server_cache" \\
-        --destination="drgrove/mtls-server:$$(cat /tmp/image_tag)" \\
-        --image-name-with-digest-file="/tmp/mtls.digest" "$${EXTRA_ARGS}}"
-    |||,
-    'cat /tmp/mtls.digest',
-  ],
   depends_on=[
     get_image_tag.name,
   ],
@@ -182,12 +176,6 @@ local tag_trigger = {
   unittest_pl('PR', '3.9', trigger=pr_trigger),
   unittest_pl('Master', '3.9', trigger=master_trigger),
   unittest_pl('Tag', '3.9', trigger=tag_trigger),
-  unittest_pl('PR', '3.8', trigger=pr_trigger),
-  unittest_pl('Master', '3.8', trigger=master_trigger),
-  unittest_pl('Tag', '3.8', trigger=tag_trigger),
-  unittest_pl('PR', '3.7', trigger=pr_trigger),
-  unittest_pl('Master', '3.7', trigger=master_trigger),
-  unittest_pl('Tag', '3.7', trigger=tag_trigger),
   image_build_pl('PR', trigger=pr_trigger, push=false),
   image_build_pl('Master', trigger=master_trigger, push=false),
   image_build_pl('Tag', trigger=tag_trigger, push=true),

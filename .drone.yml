@@ -137,280 +137,6 @@ trigger:
 
 ---
 kind: pipeline
-name: "PR Unit Test: 3.8"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.8-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - pull_request
-
----
-kind: pipeline
-name: "Master Unit Test: 3.8"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.8-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - push
-  ref:
-  - refs/head/master
-
----
-kind: pipeline
-name: "Tag Unit Test: 3.8"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.8-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - tag
-
----
-kind: pipeline
-name: "PR Unit Test: 3.7"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.7-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - pull_request
-
----
-kind: pipeline
-name: "Master Unit Test: 3.7"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.7-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - push
-  ref:
-  - refs/head/master
-
----
-kind: pipeline
-name: "Tag Unit Test: 3.7"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.7-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - tag
-
----
-kind: pipeline
 name: "PR Build: Image"
 
 platform:
@@ -430,17 +156,17 @@ steps:
   image: python:3.9-slim-buster
   commands:
   - apt update && apt install -y git
-  - git describe --tags > /tmp/image_tag
+  - git describe --tags > .tags
   depends_on:
   - clone
 
 - name: Build
-  image: gcr.io/kaniko-project/executor:v1.5.1-debug@sha256:e00dfdd4a44097867c8ef671e5a7f3e31d94bd09406dbdfba8a13a63fc6b8060
-  commands:
-  - "/kaniko/executor \\\\\n  --cleanup \\\\\n  --reproducible \\\\\n  --cache=true \\\\\n  --cache-repo=\"drgrove/mtls-server_cache\" \\\\\n  --destination=\"drgrove/mtls-server:$$(cat /tmp/image_tag)\" \\\\\n  --image-name-with-digest-file=\"/tmp/mtls.digest\" \"$${EXTRA_ARGS}}\"\n"
-  - cat /tmp/mtls.digest
-  environment:
-    EXTRA_ARGS: --no-push
+  image: drGrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108
+  settings:
+    password:
+      from_secret: drgrovero
+    reproducible: true
+    username: drgrovero
   depends_on:
   - Get Tag
 
@@ -469,17 +195,17 @@ steps:
   image: python:3.9-slim-buster
   commands:
   - apt update && apt install -y git
-  - git describe --tags > /tmp/image_tag
+  - git describe --tags > .tags
   depends_on:
   - clone
 
 - name: Build
-  image: gcr.io/kaniko-project/executor:v1.5.1-debug@sha256:e00dfdd4a44097867c8ef671e5a7f3e31d94bd09406dbdfba8a13a63fc6b8060
-  commands:
-  - "/kaniko/executor \\\\\n  --cleanup \\\\\n  --reproducible \\\\\n  --cache=true \\\\\n  --cache-repo=\"drgrove/mtls-server_cache\" \\\\\n  --destination=\"drgrove/mtls-server:$$(cat /tmp/image_tag)\" \\\\\n  --image-name-with-digest-file=\"/tmp/mtls.digest\" \"$${EXTRA_ARGS}}\"\n"
-  - cat /tmp/mtls.digest
-  environment:
-    EXTRA_ARGS: --no-push
+  image: drGrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108
+  settings:
+    password:
+      from_secret: drgrovero
+    reproducible: true
+    username: drgrovero
   depends_on:
   - Get Tag
 
@@ -510,15 +236,18 @@ steps:
   image: python:3.9-slim-buster
   commands:
   - apt update && apt install -y git
-  - git describe --tags > /tmp/image_tag
+  - git describe --tags > .tags
   depends_on:
   - clone
 
 - name: Build
-  image: gcr.io/kaniko-project/executor:v1.5.1-debug@sha256:e00dfdd4a44097867c8ef671e5a7f3e31d94bd09406dbdfba8a13a63fc6b8060
-  commands:
-  - "/kaniko/executor \\\\\n  --cleanup \\\\\n  --reproducible \\\\\n  --cache=true \\\\\n  --cache-repo=\"drgrove/mtls-server_cache\" \\\\\n  --destination=\"drgrove/mtls-server:$$(cat /tmp/image_tag)\" \\\\\n  --image-name-with-digest-file=\"/tmp/mtls.digest\" \"$${EXTRA_ARGS}}\"\n"
-  - cat /tmp/mtls.digest
+  image: drGrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108
+  settings:
+    password:
+      from_secret: drgrovebot
+    repo: drgrove/mtls-server
+    reproducible: true
+    username: drgrovebot
   depends_on:
   - Get Tag
 
@@ -528,6 +257,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 74e539fc2022006f292f8adb330bd1678aec999c445634ec1c7795ed2de2fe40
+hmac: 71f3c57f00bcb802a03a388a3dfe8525941a272ec3333fae37098ccf4fddfe96
 
 ...
