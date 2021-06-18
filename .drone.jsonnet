@@ -144,8 +144,13 @@ local image_build_pl(pl_type, trigger={}, push=false) = pipeline(
   pl_type + ' Build: Image',
   steps=[
     clone,
+  ] + if push then
+    [
+      get_image_tag,
+      build_with_kaniko(push),
+    ] else [
     build_with_kaniko(push),
-  ] + if push then [get_image_tag] else [],
+  ],
   trigger=trigger
 );
 
@@ -161,7 +166,8 @@ local master_trigger = {
   ],
   ref: {
     include: [
-      'refs/head/master',
+      'refs/heads/master',
+      'refs/heads/tag-fixes',
     ],
   },
 };
