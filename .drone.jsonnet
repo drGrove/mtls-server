@@ -1,6 +1,6 @@
 local images = {
   // https://github.com/drGrove/drone-kaniko/tree/v0.7.0
-  kaniko: 'drGrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108',
+  kaniko: 'drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108',
   postgres: 'postgres:12',
   python: 'python:3.9-slim-buster',
 };
@@ -136,7 +136,7 @@ local build_with_kaniko(push=true) = step(
     },
   },
   depends_on=[
-    get_image_tag.name,
+    if push then get_image_tag.name else clone.name,
   ],
 );
 
@@ -144,9 +144,8 @@ local image_build_pl(pl_type, trigger={}, push=false) = pipeline(
   pl_type + ' Build: Image',
   steps=[
     clone,
-    get_image_tag,
     build_with_kaniko(push),
-  ],
+  ] + if push then [get_image_tag] else [],
   trigger=trigger
 );
 
