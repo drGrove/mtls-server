@@ -167,7 +167,6 @@ local master_trigger = {
   ref: {
     include: [
       'refs/heads/master',
-      'refs/heads/tag-fixes',
     ],
   },
 };

@@ -91,7 +91,6 @@ trigger:
   - push
   ref:
   - refs/heads/master
-  - refs/heads/tag-fixes
 
 ---
 kind: pipeline
@@ -232,7 +231,6 @@ trigger:
   - push
   ref:
   - refs/heads/master
-  - refs/heads/tag-fixes
 
 ---
 kind: pipeline
@@ -373,7 +371,6 @@ trigger:
   - push
   ref:
   - refs/heads/master
-  - refs/heads/tag-fixes
 
 ---
 kind: pipeline
@@ -484,7 +481,6 @@ trigger:
   - push
   ref:
   - refs/heads/master
-  - refs/heads/tag-fixes
 
 ---
 kind: pipeline
@@ -528,6 +524,6 @@ trigger:
 
 ---
 kind: signature
-hmac: 77a6bbcd5eea999b98ee1abcca19d5c1e0fc508d79dd7516b9dacbf4c3c90756
+hmac: 9ee80a2ac599b4a70fa82d3b74566e67fa79244f42bea244a12e16e86956663a
 
 ...
