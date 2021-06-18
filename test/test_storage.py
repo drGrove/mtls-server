@@ -1,6 +1,7 @@
 import configparser
 import datetime
 import logging
+import os
 import unittest
 
 from cryptography import x509
@@ -16,6 +17,9 @@ from mtls_server.config import Config
 
 
 logging.disable(logging.CRITICAL)
+
+POSTGRES_HOST = os.environ.get('PGHOST', 'localhost')
+KEY_SIZE = os.environ.get('KEY_SIZE', 2048)
 
 
 def generate_fake_cert(
@@ -138,10 +142,10 @@ class TestSQLiteStorageEngine(unittest.TestCase):
         self.engine.conn.commit()
         self.engine.init_db()
         self.pkey = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048, backend=default_backend()
+            public_exponent=65537, key_size=KEY_SIZE, backend=default_backend()
         )
         self.upkey = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048, backend=default_backend()
+            public_exponent=65537, key_size=KEY_SIZE, backend=default_backend()
         )
 
     def tearDown(self):
@@ -259,7 +263,7 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
     def setUp(self):
         config = configparser.ConfigParser()
         config.read_string(
-            """
+            f"""
             [storage]
             engine=postgres
 
@@ -267,7 +271,7 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
             database = mtls
             user = postgres
             password = postgres
-            host = localhost
+            host = {POSTGRES_HOST}
             """
         )
         Config.init_config(config=config)
@@ -277,10 +281,10 @@ class TestPostgresqlStorageEngine(unittest.TestCase):
         self.engine.conn.commit()
         self.engine.init_db()
         self.pkey = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048, backend=default_backend()
+            public_exponent=65537, key_size=KEY_SIZE, backend=default_backend()
         )
         self.upkey = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048, backend=default_backend()
+            public_exponent=65537, key_size=KEY_SIZE, backend=default_backend()
         )
 
     def tearDown(self):

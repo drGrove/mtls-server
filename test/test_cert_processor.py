@@ -21,6 +21,7 @@ from mtls_server.utils import generate_key
 
 
 logging.disable(logging.CRITICAL)
+CLEANUP = os.environ.get('CLEANUP', '1')
 
 
 class TestCertProcessorBase(unittest.TestCase):
@@ -223,8 +224,9 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
             )
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
 
     def test_get_ca_cert(self):
         self.get_ca_cert()
@@ -275,10 +277,11 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
             database = mtls
             user = postgres
             password = postgres
-            host = localhost
+            host = {postgres_host}
             """.format(
                 user_gnupghome=self.USER_GNUPGHOME.name,
                 admin_gnupghome=self.ADMIN_GNUPGHOME.name,
+                postgres_host=os.environ.get('PGHOST', 'localhost')
             )
         )
         Config.init_config(config=config)
@@ -320,8 +323,9 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
             )
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
 
     def test_get_ca_cert(self):
         self.get_ca_cert()
@@ -377,8 +381,9 @@ class TestCertProcessorMissingStorage(TestCertProcessorBase):
         )
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
 
     def test_missing_storage(self):
         with self.assertRaises(storage.StorageEngineMissing):
@@ -456,8 +461,9 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
             )
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
 
     def test_get_ca_cert(self):
         self.get_ca_cert()
@@ -551,9 +557,10 @@ class TestCertProcessorPasswordCAKey(TestCertProcessorBase):
             )
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
-        self.AUTHORITY_FOLDER.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
+            self.AUTHORITY_FOLDER.cleanup()
 
     def test_get_ca_cert(self):
         os.environ["CA_KEY_PASSWORD"] = gen_passwd()
@@ -631,9 +638,10 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
             )
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
-        self.AUTHORITY_FOLDER.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
+            self.AUTHORITY_FOLDER.cleanup()
         self.fqdn_patch.stop()
 
     def test_crl_distribution_path(self):

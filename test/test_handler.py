@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import tempfile
 import unittest
 
@@ -21,6 +22,7 @@ from mtls_server.utils import generate_key
 
 
 logging.disable(logging.CRITICAL)
+CLEANUP = os.environ.get('CLEANUP', '1')
 
 
 class TestHandler(unittest.TestCase):
@@ -134,10 +136,11 @@ class TestHandler(unittest.TestCase):
             self.new_user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
-        self.INVALID_GNUPGHOME.cleanup()
-        self.NEW_USER_GNUPGHOME.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
+            self.INVALID_GNUPGHOME.cleanup()
+            self.NEW_USER_GNUPGHOME.cleanup()
 
     def test_user_revoke_cert_serial_number(self):
         user = self.users[0]
@@ -557,11 +560,12 @@ class TestHandlerSeeding(unittest.TestCase):
         ]
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
-        self.NEW_USER_GNUPGHOME.cleanup()
-        self.NEW_ADMIN_GNUPGHOME.cleanup()
-        self.SEED_DIR.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
+            self.NEW_USER_GNUPGHOME.cleanup()
+            self.NEW_ADMIN_GNUPGHOME.cleanup()
+            self.SEED_DIR.cleanup()
 
 
 if __name__ == "__main__":

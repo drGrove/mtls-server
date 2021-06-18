@@ -13,6 +13,7 @@ from mtls_server.utils import gen_passwd
 from mtls_server.utils import generate_key
 
 logging.disable(logging.CRITICAL)
+CLEANUP = os.environ.get('CLEANUP', '1')
 
 
 class TestSync(unittest.TestCase):
@@ -72,11 +73,12 @@ class TestSync(unittest.TestCase):
         ]
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
-        self.NEW_USER_GNUPGHOME.cleanup()
-        self.NEW_ADMIN_GNUPGHOME.cleanup()
-        self.SEED_DIR.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
+            self.NEW_USER_GNUPGHOME.cleanup()
+            self.NEW_ADMIN_GNUPGHOME.cleanup()
+            self.SEED_DIR.cleanup()
 
     def test_seed_users(self):
         seed_subpath = "user"
