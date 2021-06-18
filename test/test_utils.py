@@ -8,6 +8,7 @@ from mtls_server.utils import create_dir_if_missing
 from mtls_server.utils import get_abs_path
 
 logging.disable(logging.CRITICAL)
+CLEANUP = os.environ.get('CLEANUP', '1')
 
 
 class TestUtils(unittest.TestCase):
@@ -26,4 +27,5 @@ class TestUtils(unittest.TestCase):
         new_dir = f"{self.TEMPDIR.name}/foo/bar/"
         create_dir_if_missing(new_dir)
         self.assertTrue(os.path.isdir(new_dir))
-        self.TEMPDIR.cleanup()
+        if CLEANUP == '1':
+            self.TEMPDIR.cleanup()

@@ -16,6 +16,7 @@ from mtls_server.utils import generate_key
 
 
 logging.disable(logging.CRITICAL)
+CLEANUP = os.environ.get('CLEANUP', '1')
 
 
 class TestServer(unittest.TestCase):
@@ -128,10 +129,11 @@ class TestServer(unittest.TestCase):
             self.new_user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
 
     def tearDown(self):
-        self.USER_GNUPGHOME.cleanup()
-        self.ADMIN_GNUPGHOME.cleanup()
-        self.INVALID_GNUPGHOME.cleanup()
-        self.NEW_USER_GNUPGHOME.cleanup()
+        if CLEANUP == '1':
+            self.USER_GNUPGHOME.cleanup()
+            self.ADMIN_GNUPGHOME.cleanup()
+            self.INVALID_GNUPGHOME.cleanup()
+            self.NEW_USER_GNUPGHOME.cleanup()
 
     def test_get_ca_cert(self):
         response = self.app.get("/ca")

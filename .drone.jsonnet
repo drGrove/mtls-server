@@ -87,6 +87,7 @@ local test(python_version) = step(
     COVERALLS_REPO_TOKEN: {
       from_secret: 'COVERALLS_REPO_TOKEN',
     },
+    CLEANUP: '0',
   },
   commands=[
     'apt update && apt install -y make cmake gnupg git postgresql-client',
@@ -176,6 +177,12 @@ local tag_trigger = {
   unittest_pl('PR', '3.9', trigger=pr_trigger),
   unittest_pl('Master', '3.9', trigger=master_trigger),
   unittest_pl('Tag', '3.9', trigger=tag_trigger),
+  unittest_pl('PR', '3.8', trigger=pr_trigger),
+  unittest_pl('Master', '3.8', trigger=master_trigger),
+  unittest_pl('Tag', '3.8', trigger=tag_trigger),
+  unittest_pl('PR', '3.7', trigger=pr_trigger),
+  unittest_pl('Master', '3.7', trigger=master_trigger),
+  unittest_pl('Tag', '3.7', trigger=tag_trigger),
   image_build_pl('PR', trigger=pr_trigger, push=false),
   image_build_pl('Master', trigger=master_trigger, push=false),
   image_build_pl('Tag', trigger=tag_trigger, push=true),
