@@ -1,4 +1,6 @@
-FROM python:3.8.2-slim as build-container
+# 3.9.5-slim
+ARG PYTHON_DIGEST="sha256:076f9edf940d59446b98c242de0058054240b890a47d1dbed18560d12ec58228"
+FROM python@${PYTHON_DIGEST} as build-container
 MAINTAINER Danny Grove <danny@drgrovellc.com>
 RUN apt update && \
   apt install -y gnupg openssl build-essential make sqlite3
