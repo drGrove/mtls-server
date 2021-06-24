@@ -1,4 +1,5 @@
-FROM nginx:1.15.8
+# nginx:stable @ Jun 23, 2021 at 2:58 am
+FROM nginx@sha256:d96a932a263f003339751442aa14073fbab77032ca3f2e5f7e42c9f10ec275f5
 ADD nginx/nginx.conf /etc/nginx/
 ADD nginx/includes /etc/nginx/includes/
 ADD nginx/html /usr/share/nginx/
