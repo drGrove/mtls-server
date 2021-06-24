@@ -32,7 +32,7 @@ configMapGenerator:
 patchesJson6902:
   - target:
       group: networking.k8s.io
-      version: v1beta1
+      version: v1
       kind: Ingress
       name: mtls
     patch: |-

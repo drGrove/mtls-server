@@ -1,4 +1,4 @@
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: mtls
@@ -14,6 +14,9 @@ spec:
       http:
         paths:
           - path: "/"
+            pathType: Prefix
             backend:
-              serviceName: mtls
-              servicePort: http
+              service:
+                name: mtls
+                port:
+                  name: http
