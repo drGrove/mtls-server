@@ -53,6 +53,8 @@ spec:
               mountPath: /home/mtls/secrets/admin_gnupg/
               subPath: "admin_gnupg"
               readOnly: false
+            - name: sigs
+              mountPath: /tmp/sigs/
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -61,8 +63,8 @@ spec:
                 - "ALL"
           resources:
             requests:
-              cpu: 1000m
-              memory: 1Gi
+              cpu: 200m
+              memory: 100Mi
             limits:
               cpu: 1000m
               memory: 1Gi
@@ -95,3 +97,5 @@ spec:
         - name: persistence
           persistentVolumeClaim:
             claimName: mtls
+        - name: sigs
+          emptyDir: {}

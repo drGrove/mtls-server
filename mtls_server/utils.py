@@ -125,7 +125,7 @@ def write_sig_to_file(sig_str):
 
     Return: path to signature file
     """
-    sig_path = "/tmp/{}.sig".format(uuid.uuid4())
+    sig_path = "/tmp/sigs/{}.sig".format(uuid.uuid4())
     with open(sig_path, "wb") as f:
         f.write(sig_str.encode("utf-8"))
     return sig_path
