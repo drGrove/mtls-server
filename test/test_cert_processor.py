@@ -28,7 +28,7 @@ class TestCertProcessorBase(unittest.TestCase):
     def get_ca_cert(self):
         key = self.cert_processor.get_ca_key()
         ca_cert = self.cert_processor.get_ca_cert(key)
-        self.assertIsInstance(ca_cert, openssl.x509._Certificate)
+        self.assertIsInstance(ca_cert, x509.Certificate)
 
     def has_ca_key(self):
         ca_key = self.cert_processor.get_ca_key()
@@ -90,7 +90,7 @@ class TestCertProcessorBase(unittest.TestCase):
             cert = x509.load_pem_x509_certificate(
                 bcert, backend=default_backend()
             )
-            self.assertIsInstance(cert, openssl.x509._Certificate)
+            self.assertIsInstance(cert, x509.Certificate)
 
     def get_crl(self):
         rev_serial_num = None
@@ -107,10 +107,10 @@ class TestCertProcessorBase(unittest.TestCase):
                 rev_serial_num = cert.serial_number
 
         crl = self.cert_processor.get_crl()
-        self.assertIsInstance(crl, openssl.x509._CertificateRevocationList)
+        self.assertIsInstance(crl, x509.CertificateRevocationList)
         self.assertIsInstance(
             crl.get_revoked_certificate_by_serial_number(rev_serial_num),
-            openssl.x509._RevokedCertificate,
+            x509.RevokedCertificate,
         )
         self.assertIn(
             "-----BEGIN X509 CRL-----",
@@ -123,7 +123,7 @@ class TestCertProcessorBase(unittest.TestCase):
 
     def get_empty_crl(self):
         crl = self.cert_processor.get_crl()
-        self.assertIsInstance(crl, openssl.x509._CertificateRevocationList)
+        self.assertIsInstance(crl, x509.CertificateRevocationList)
         self.assertIn(
             "-----BEGIN X509 CRL-----",
             crl.public_bytes(serialization.Encoding.PEM).decode("UTF-8"),
@@ -649,7 +649,7 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
         csr = user.gen_csr(email=user.email)
         bcert = self.cert_processor.generate_cert(csr, 60, user.fingerprint)
         cert = x509.load_pem_x509_certificate(bcert, backend=default_backend())
-        self.assertIsInstance(cert, openssl.x509._Certificate)
+        self.assertIsInstance(cert, x509.Certificate)
         has_crl_extension = False
         for extension in cert.extensions:
             if isinstance(extension.value, x509.CRLDistributionPoints):

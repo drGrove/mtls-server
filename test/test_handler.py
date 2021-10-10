@@ -227,7 +227,7 @@ class TestHandler(unittest.TestCase):
             cert = x509.load_pem_x509_certificate(
                 response["cert"].encode("UTF-8"), backend=default_backend()
             )
-            self.assertIsInstance(cert, openssl.x509._Certificate)
+            self.assertIsInstance(cert, x509.Certificate)
 
     def test_create_cert_for_other_user_as_user(self):
         user = self.users[0]
