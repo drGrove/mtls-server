@@ -5,13 +5,14 @@ resources:
   - mtls-role.yml
   - mtls-serviceaccount.yml
 patches:
-  - add-init-containers.patch.yml
-  - disable-seed-on-init.patch.yml
+  - add-sidecars.patch.yml
+  - ephemeral-keyring.patch.yml
 configMapGenerator:
-  - name: mtls-seed-script
+  - name: mtls-restart-script
     files:
-      - ./files/seed.sh
+      - ./files/restart-mtls.sh
 images:
   - name: kiwigrid/k8s-sidecar
-    newName: drgrove/k8s-sidecar
-    digest: sha256:8799b42ad45245b63a85e0e2190914da8d32472f3cd98f057cc332ca32be98cc
+    newTag: 1.14.2
+    digest: sha256:80d5a85a72762aef6181941eaccc8449f3b46ccab932e7362d2d71726681d1ec
+

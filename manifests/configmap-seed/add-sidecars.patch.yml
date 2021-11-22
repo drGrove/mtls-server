@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mtls
+spec:
+  template:
+    spec:
+      shareProcessNamespace: true
+      serviceAccountName: mtls
+      containers:
+        - name: mtls
+          volumeMounts:
+            - name: sc-user-keys-volume
+              mountPath: /tmp/seeds/user
+            - name: sc-admin-keys-volume
+              mountPath: /tmp/seeds/admin
+        - name: mtls-init-user-keys
+          image: kiwigrid/k8s-sidecar:1.14.2
+          env:
+            - name: LABEL
+              value: mtls_user_key
+            - name: FOLDER
+              value: /tmp/user_keys
+            - name: SCRIPT
+              value: /tmp/restart-mtls.sh
+          volumeMounts:
+            - name: sc-user-keys-volume
+              mountPath: /tmp/user_keys
+            - name: mtls-restart-script
+              mountPath: /tmp/restart-mtls.sh
+              subPath: "restart-mtls.sh"
+              readOnly: true
+        - name: mtls-init-admin-keys
+          image: kiwigrid/k8s-sidecar:1.14.2
+          env:
+            - name: LABEL
+              value: mtls_admin_key
+            - name: FOLDER
+              value: /tmp/admin_keys
+            - name: SCRIPT
+              value: /tmp/restart-mtls.sh
+          volumeMounts:
+            - name: sc-admin-keys-volume
+              mountPath: /tmp/admin_keys
+            - name: mtls-restart-script
+              mountPath: /tmp/restart-mtls.sh
+              subPath: "restart-mtls.sh"
+              readOnly: true
+      volumes:
+        - name: sc-user-keys-volume
+          emptyDir: {}
+        - name: sc-admin-keys-volume
+          emptyDir: {}
+        - name: mtls-restart-script
+          configMap:
+            name: mtls-restart-script
+            defaultMode: 0777
