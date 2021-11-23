@@ -91,6 +91,16 @@ class TestCertProcessorBase(unittest.TestCase):
                 bcert, backend=default_backend()
             )
             self.assertIsInstance(cert, x509.Certificate)
+        for user in self.users:
+            csr = user.gen_csr(with_san=True)
+            bcert = self.cert_processor.generate_cert(
+                csr, 60, user.fingerprint
+            )
+            cert = x509.load_pem_x509_certificate(
+                bcert, backend=default_backend()
+            )
+            self.assertIsInstance(cert, x509.Certificate)
+
 
     def get_crl(self):
         rev_serial_num = None

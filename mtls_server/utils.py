@@ -19,9 +19,6 @@ def generate_key(key_size=4096):
 
 
 def generate_csr(key, common_name, email=None):
-    country = "US"
-    state = "CA"
-    locality = "San Francisco"
     organization_name = "My Org"
     if email is None:
         email = "test@example.com"
@@ -30,9 +27,6 @@ def generate_csr(key, common_name, email=None):
         .subject_name(
             x509.Name(
                 [
-                    x509.NameAttribute(NameOID.COUNTRY_NAME, country),
-                    x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state),
-                    x509.NameAttribute(NameOID.LOCALITY_NAME, locality),
                     x509.NameAttribute(
                         NameOID.ORGANIZATION_NAME, organization_name
                     ),
@@ -43,6 +37,27 @@ def generate_csr(key, common_name, email=None):
         )
         .sign(key, hashes.SHA256(), default_backend())
     )
+
+
+def generate_csr_with_san(key, common_name, email=None):
+    organization_name = "My Org"
+    if email is None:
+        email = "test@example.com"
+
+    subject_name_attributes = [
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
+        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+    ]
+
+    san_attributes = [
+        x509.RFC822Name(email)
+    ]
+
+    builder = x509.CertificateSigningRequestBuilder()
+    builder = builder.subject_name(x509.Name(subject_name_attributes))
+    builder = builder.add_extension(x509.SubjectAlternativeName(san_attributes), False)
+    request = builder.sign(key, hashes.SHA256(), default_backend())
+    return request
 
 
 def gen_pgp_key(email, password, gpg, key_size=1024):
@@ -90,14 +105,18 @@ class User:
     def csrs(self):
         return self.__csrs
 
-    def gen_csr(self, common_name=None, email=None):
+    def gen_csr(self, common_name=None, email=None, with_san=False):
         if common_name is None:
             common_name = self.email
         if email is None:
             email = self.email
-        csr = generate_csr(self.key, common_name, email)
+        if with_san:
+            csr = generate_csr_with_san(self.key, common_name, email)
+        else:
+            csr = generate_csr(self.key, common_name, email)
         self.__csrs.append(csr)
         return csr
+
 
 
 def gen_passwd():

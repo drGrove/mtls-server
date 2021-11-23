@@ -8,7 +8,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
+from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID, ExtensionOID
 import gnupg
 
 from .key_refresh import KeyRefresh
@@ -41,6 +41,9 @@ class CertProcessorNotAdminUserError(Exception):
 
 
 class CertProcessorNoPGPKeyFoundError(Exception):
+    pass
+
+class CertProcessorUnsupportedCriticalExtensionError(Exception):
     pass
 
 
@@ -335,6 +338,82 @@ class CertProcessor:
         email = subj.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value
         return any(email in uid for uid in signer_key["uids"])
 
+    def check_san_against_key(self, san, signer_key):
+        """Check a SAN email against the signing fingerprint.
+
+        The only exception to this is if an admin user is to generate a
+        certificate on behalf of someone else. This should be done with extreme
+        care, but access will only be allowed for the life of the certificate.
+
+        Args:
+            san (cryptography.x509.SubjectAlternativeName): An x509 SubjectAlternativeName.
+            signer_key (dict): PGP key details from python-gnupg.
+
+        Returns:
+            Wheather the subject email matches a PGP uid for a given
+            fingerprint.
+        """
+        email = san.value.get_values_for_type(x509.RFC822Name)[0]
+        return any(email in uid for uid in signer_key["uids"])
+
+    def get_allowed_subject_name(self, subj, ca_cert, gpg_key, is_admin):
+        csr_subject_arr = []
+        attr = ca_cert.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)
+        if attr:
+            ca_cert_organization = attr[0].value
+        else:
+            ca_cert_organization = ""
+        for attribute in subj:
+            attr_oid = attribute.oid
+            val = attribute.value
+
+            if attr_oid == NameOID.COMMON_NAME:
+                csr_subject_arr.append(attribute)
+                continue
+            if attr_oid == NameOID.EMAIL_ADDRESS:
+                email = subj.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value
+                csr_subject_arr.append(x509.NameAttribute(NameOID.EMAIL_ADDRESS, email))
+                email_in_key = self.check_subject_against_key(subj, gpg_key)
+                if not email_in_key and not is_admin:
+                    raise CertProcessorNotAdminUserError()
+                continue
+            if attr_oid == NameOID.ORGANIZATION_NAME:
+                # If the organization provided does not align with the CA, just
+                # override with the CA Organization Name. Since we've already proven
+                # that the user is allowed to create a Client Certificate for this
+                # Organization it isn't a big deal
+                if val != ca_cert_organization:
+                    # If the CA Certificate does not have an organization, just skip
+                    if ca_cert_organization != "":
+                        continue
+                    attribute = x509.NameAttribute(NameOID.ORGANIZATION_NAME, ca_cert_organization)
+                csr_subject_arr.append(attribute)
+                continue
+
+            logger.warning(f"Disallowed Name OID {attr_oid} removed from Subject")
+        return x509.Name(csr_subject_arr)
+
+    def get_allowed_extensions(self, csr, gpg_key, is_admin):
+        extensions = []
+        for extension in csr.extensions:
+            if extension.oid == ExtensionOID.SUBJECT_ALTERNATIVE_NAME:
+                allowed_entries = [x509.RFC822Name]
+                final_entries = []
+                for entry in allowed_entries:
+                    if entry == x509.RFC822Name:
+                        email_in_key = self.check_san_against_key(extension, gpg_key)
+                        if not email_in_key and not is_admin:
+                            raise CertProcessorNotAdminUserError()
+                        final_entries.append(x509.RFC822Name(extension.value.get_values_for_type(x509.RFC822Name)[0]))
+                extensions.append((x509.SubjectAlternativeName(final_entries), False))
+                continue
+
+            ## Catch All
+            if extension.critical == True:
+                logger.critical(f"CSR with Critical Extension {extension.oid} found could not be processed.")
+                raise CertProcessorUnsupportedCriticalExtensionError()
+        return extensions
+
     def generate_cert(self, csr, lifetime, fingerprint):
         """Generate a Certificate from a CSR.
 
@@ -356,32 +435,22 @@ class CertProcessor:
         ca_cert = self.get_ca_cert(ca_pkey)
         now = datetime.datetime.utcnow()
         lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
-        alts = []
         is_admin = self.is_admin(fingerprint)
         logger.info(f"generate_cert: getting gpg key for {fingerprint}")
         user_gpg_key = self.get_gpg_key_by_fingerprint(fingerprint, is_admin)
         if user_gpg_key is None:
             raise CertProcessorNoPGPKeyFoundError()
-        email_in_key = self.check_subject_against_key(
-            csr.subject, user_gpg_key
-        )
-        if not email_in_key and not is_admin:
-            raise CertProcessorNotAdminUserError()
-        for alt in self.config.get("ca", "alternate_name").split(","):
-            alts.append(x509.DNSName("{}".format(alt)))
-        cert = (
-            x509.CertificateBuilder()
-            .subject_name(csr.subject)
-            .issuer_name(ca_cert.subject)
-            .public_key(csr.public_key())
-            .serial_number(uuid.uuid4().int)
-            .not_valid_before(now)
-            .not_valid_after(lifetime_delta)
-        )
-        if len(alts) > 0:
-            cert = cert.add_extension(
-                x509.SubjectAlternativeName(alts), critical=False
-            )
+
+        builder = x509.CertificateBuilder()
+        builder = builder.subject_name(self.get_allowed_subject_name(csr.subject, ca_cert, user_gpg_key, is_admin))
+        builder = builder.issuer_name(ca_cert.subject)
+        builder = builder.public_key(csr.public_key())
+        builder = builder.serial_number(uuid.uuid4().int)
+        builder = builder.not_valid_before(now)
+        builder = builder.not_valid_after(lifetime_delta)
+        for extension in self.get_allowed_extensions(csr, user_gpg_key, is_admin):
+            builder = builder.add_extension(extension[0], critical=extension[1])
+
         crl_dp = x509.DistributionPoint(
             [
                 x509.UniformResourceIdentifier(
@@ -394,20 +463,20 @@ class CertProcessor:
             reasons=None,
             crl_issuer=None,
         )
-        cert = cert.add_extension(
+        builder = builder.add_extension(
             x509.CRLDistributionPoints([crl_dp]), critical=False
         )
-        cert = cert.add_extension(
+        builder = builder.add_extension(
             x509.BasicConstraints(ca=False, path_length=None),
             critical=True,
         )
-        cert = cert.add_extension(
-            x509.ExtendedKeyUsage([x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH]),
+        builder = builder.add_extension(
+            x509.ExtendedKeyUsage([ExtendedKeyUsageOID.CLIENT_AUTH]),
             critical=True,
         )
 
         logger.info(f"generate_cert: Signing certificate for {fingerprint}")
-        cert = cert.sign(
+        cert = builder.sign(
             private_key=ca_pkey,
             algorithm=hashes.SHA256(),
             backend=default_backend(),
@@ -419,10 +488,10 @@ class CertProcessor:
             logger.info(
                 f"generate_cert: updating certificate for {fingerprint}"
             )
-            cert = self.update_cert(csr, lifetime)
+            cert = self.update_cert(csr, lifetime, user_gpg_key, is_admin)
         return cert.public_bytes(serialization.Encoding.PEM)
 
-    def update_cert(self, csr, lifetime):
+    def update_cert(self, csr, lifetime, user_gpg_key, is_admin):
         """Given a CSR, look it up in the database, update it and present the
         new certificate.
 
@@ -467,23 +536,17 @@ class CertProcessor:
         ca_cert = self.get_ca_cert(ca_pkey)
         now = datetime.datetime.utcnow()
         lifetime_delta = now + datetime.timedelta(seconds=int(lifetime))
-        alts = []
-        for alt in self.config.get("ca", "alternate_name").split(","):
-            alts.append(x509.DNSName("{}".format(alt)))
 
-        cert = (
-            x509.CertificateBuilder()
-            .subject_name(old_cert.subject)
-            .issuer_name(ca_cert.subject)
-            .public_key(csr.public_key())
-            .serial_number(old_cert.serial_number)
-            .not_valid_before(old_cert.not_valid_before)
-            .not_valid_after(lifetime_delta)
-        )
-        if len(alts) > 0:
-            cert = cert.add_extension(
-                x509.SubjectAlternativeName(alts), critical=False
-            )
+        builder = x509.CertificateBuilder()
+        builder = builder.subject_name(old_cert.subject)
+
+        builder = builder.issuer_name(ca_cert.subject)
+        builder = builder.public_key(csr.public_key())
+        builder = builder.serial_number(old_cert.serial_number)
+        builder = builder.not_valid_before(old_cert.not_valid_before)
+        builder = builder.not_valid_after(lifetime_delta)
+        for extension in self.get_allowed_extensions(csr, user_gpg_key, is_admin):
+            builder = builder.add_extension(extension[0], critical=extension[1])
         crl_dp = x509.DistributionPoint(
             [
                 x509.UniformResourceIdentifier(
@@ -496,11 +559,11 @@ class CertProcessor:
             reasons=None,
             crl_issuer=None,
         )
-        cert = cert.add_extension(
+        builder = builder.add_extension(
             x509.CRLDistributionPoints([crl_dp]), critical=False
         )
 
-        cert = cert.sign(
+        cert = builder.sign(
             private_key=ca_pkey,
             algorithm=hashes.SHA256(),
             backend=default_backend(),

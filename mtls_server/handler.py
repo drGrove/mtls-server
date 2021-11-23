@@ -238,7 +238,7 @@ class Handler:
     def add_and_trust_user(self, gpg, fingerprint):
         keyserver = self.config.get("gnupg", "keyserver", "keyserver.ubuntu.com")
         logger.info(f"Retrieving key {fingerprint} from {keyserver}")
-        result = self.cert_processor.user_gpg.recv_keys(
+        result = gpg.recv_keys(
             keyserver,
             fingerprint,
         )
