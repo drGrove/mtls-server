@@ -76,8 +76,9 @@ class CertProcessor:
         self.admin_gpg.encoding = "utf-8"
 
         # Start Background threads for getting revoke/expiry from Keyserver
-        KeyRefresh("user_key_refresh", self.user_gpg, config)
-        KeyRefresh("admin_key_refresh", self.admin_gpg, config)
+        if os.environ.get('AUTO_REFRESH_KEYS', '0') == '1':
+            KeyRefresh("user_key_refresh", self.user_gpg, config)
+            KeyRefresh("admin_key_refresh", self.admin_gpg, config)
 
         if config.get("storage", "engine", None) is None:
             raise StorageEngineMissing()

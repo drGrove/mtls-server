@@ -1,8 +1,10 @@
+import base64
 import json
 import logging
 import os
 import tempfile
 import unittest
+import time
 
 from configparser import ConfigParser
 from cryptography.hazmat.primitives import serialization
@@ -16,7 +18,7 @@ from mtls_server.utils import gen_passwd
 from mtls_server.utils import generate_key
 
 
-logging.disable(logging.CRITICAL)
+# logging.disable(logging.CRITICAL)
 CLEANUP = os.environ.get('CLEANUP', '1')
 
 
@@ -106,28 +108,28 @@ class TestServer(unittest.TestCase):
             self.user_gpg.import_keys(
                 self.user_gpg.export_keys(user.fingerprint)
             )
-            self.user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
+            # self.user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
         for user in self.admin_users:
             # Import to admin keychain
             self.admin_gpg.import_keys(
                 self.admin_gpg.export_keys(user.fingerprint)
             )
-            self.admin_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
+            # self.admin_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
             # Import to user keychain
             self.user_gpg.import_keys(
                 self.admin_gpg.export_keys(user.fingerprint)
             )
-            self.user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
+            # self.user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
         for user in self.invalid_users:
             self.invalid_gpg.import_keys(
                 self.invalid_gpg.export_keys(user.fingerprint)
             )
-            self.invalid_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
+            # self.invalid_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
         for user in self.new_users:
             self.new_user_gpg.import_keys(
                 self.new_user_gpg.export_keys(user.fingerprint)
             )
-            self.new_user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
+            # self.new_user_gpg.trust_keys([user.fingerprint], "TRUST_ULTIMATE")
 
     def tearDown(self):
         if CLEANUP == '1':
@@ -151,24 +153,28 @@ class TestServer(unittest.TestCase):
     def test_user_generate_cert(self):
         user = self.users[0]
         csr = user.gen_csr()
-        sig = self.user_gpg.sign(
-            csr.public_bytes(serialization.Encoding.PEM),
-            keyid=user.fingerprint,
-            detach=True,
-            clearsign=True,
-            passphrase=user.password,
-        )
         payload = {
             "csr": csr.public_bytes(serialization.Encoding.PEM).decode(
                 "utf-8"
             ),
-            "signature": str(sig),
             "lifetime": 60,
-            "type": "CERTIFICATE",
         }
-        response = self.app.post(
-            "/", data=json.dumps(payload), content_type="application/json"
+        sig = self.user_gpg.sign(
+            json.dumps(payload),
+            keyid=user.fingerprint,
+            detach=True,
+            passphrase=user.password,
         )
+        pgpb64 = base64.b64encode(str(sig).encode('ascii'))
+        response = self.app.post(
+            "/certs",
+            json=payload,
+            content_type="application/json",
+            headers={
+                'Authorization': f'PGP-SIG {str(pgpb64.decode("utf-8"))}'
+            }
+        )
+        print(response.data)
         res = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
         self.assertIn("-----BEGIN CERTIFICATE-----", res["cert"])
@@ -177,23 +183,26 @@ class TestServer(unittest.TestCase):
     def test_invalid_user_generate_cert(self):
         user = self.invalid_users[0]
         csr = user.gen_csr()
-        sig = self.invalid_gpg.sign(
-            csr.public_bytes(serialization.Encoding.PEM),
-            keyid=user.fingerprint,
-            detach=True,
-            clearsign=True,
-            passphrase=user.password,
-        )
         payload = {
             "csr": csr.public_bytes(serialization.Encoding.PEM).decode(
                 "utf-8"
             ),
-            "signature": str(sig),
             "lifetime": 60,
-            "type": "CERTIFICATE",
         }
+        sig = self.invalid_gpg.sign(
+            json.dumps(payload),
+            keyid=user.fingerprint,
+            detach=True,
+            passphrase=user.password,
+        )
+        pgpb64 = base64.b64encode(str(sig).encode('ascii'))
         response = self.app.post(
-            "/", data=json.dumps(payload), content_type="application/json"
+            "/certs",
+            json=payload,
+            content_type="application/json",
+            headers={
+                'Authorization': f'PGP-SIG {str(pgpb64.decode("utf-8"))}'
+            }
         )
         res = json.loads(response.data)
         self.assertEqual(response.status_code, 401)

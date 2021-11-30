@@ -135,7 +135,7 @@ def error_response(msg, status_code=501):
     return json.dumps({"error": True, "msg": msg}), status_code
 
 
-def write_sig_to_file(sig_str):
+def write_sig_to_file(sig):
     """
     Writes a signature to a file. Returns the path to the file
 
@@ -146,7 +146,7 @@ def write_sig_to_file(sig_str):
     """
     sig_path = "/tmp/{}.sig".format(uuid.uuid4())
     with open(sig_path, "wb") as f:
-        f.write(sig_str.encode("utf-8"))
+        f.write(sig)
     return sig_path
 
 
@@ -185,3 +185,10 @@ def import_and_trust(key_data, gpg):
 def create_dir_if_missing(path):
     if not os.path.isdir(path):
         os.makedirs(path)
+
+def time_in_range(start, end, t):
+    """Return true if t is in the range [start,end]"""
+    if start <= end:
+        return start <= t <= end
+    else:
+        return start <= t or t <= end

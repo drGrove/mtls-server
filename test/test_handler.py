@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -207,21 +208,19 @@ class TestHandler(unittest.TestCase):
     def test_create_cert(self):
         for user in self.users:
             csr = user.gen_csr()
-            sig = self.user_gpg.sign(
-                csr.public_bytes(serialization.Encoding.PEM),
-                keyid=user.fingerprint,
-                detach=True,
-                clearsign=True,
-                passphrase=user.password,
-            )
             payload = {
                 "csr": csr.public_bytes(serialization.Encoding.PEM).decode(
                     "utf-8"
                 ),
-                "signature": str(sig),
                 "lifetime": 60,
-                "type": "CERTIFICATE",
             }
+            sig = self.user_gpg.sign(
+                json.dumps(payload),
+                keyid=user.fingerprint,
+                detach=True,
+                passphrase=user.password,
+            )
+            pgpb64 = base64.b64encode(str(sig).encode('ascii'))
             response = json.loads(self.handler.create_cert(payload)[0])
             self.assertIn("-----BEGIN CERTIFICATE-----", response["cert"])
             cert = x509.load_pem_x509_certificate(

@@ -4,6 +4,7 @@ import json
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from flask import g
 
 from .cert_processor import CertProcessor
 from .cert_processor import CertProcessorInvalidSignatureError
@@ -37,6 +38,7 @@ class Handler:
 
     def create_cert(self, body):
         """Create a certificate."""
+        logger.info("Handler.create_cert")
         lifetime = int(body["lifetime"])
         min_lifetime = self.config.get_int("mtls", "min_lifetime", 60)
         max_lifetime = self.config.get_int("mtls", "max_lifetime", 0)
@@ -44,44 +46,18 @@ class Handler:
             logger.info(
                 f"User requested lifetime less than minimum. {lifetime} < {min_lifetime}"
             )
-            return error_response(
-                f"lifetime must be greater than {min_lifetime} seconds"
-            )
+            lifetime = min_lifetime
         if max_lifetime != 0:
             if lifetime > max_lifetime:
                 logger.info(
                     f"User requested lifetime greater than maximum. {lifetime} < {max_lifetime}"
                 )
-                return error_response(
-                    f"lifetime must be less than {max_lifetime} seconds"
-                )
+                lifetime = max_lifetime
         csr_str = body["csr"]
         csr = self.cert_processor.get_csr(csr_str)
         if csr is None:
             return error_response("Could not load CSR")
-        try:
-            logger.info("create_cert: get csr_public_bytes")
-            csr_public_bytes = csr.public_bytes(serialization.Encoding.PEM)
-            logger.info("create_cert: write to temp sig file")
-            sig_path = write_sig_to_file(body["signature"])
-            logger.info("create_cert: get fingerprint")
-            fingerprint = self.cert_processor.verify(
-                csr_public_bytes, sig_path
-            )
-            logger.info("create_cert: remove sig file")
-            os.remove(sig_path)
-        except CertProcessorUntrustedSignatureError as e:
-            logger.info("Unauthorized: {}".format(e))
-            return error_response("Unauthorized", 403)
-        except CertProcessorInvalidSignatureError:
-            logger.info("Invalid signature in CSR.")
-            return error_response("Invalid signature", 401)
-        except Exception as e:
-            logger.critical("Unknown Error: {}".format(e))
-            return error_response("Internal Server Error", 500)
-        if csr is None:
-            logger.info("Invalid CSR.")
-            return error_response("Invalid CSR")
+        fingerprint = g.user_fingerprint
         cert = None
         try:
             logger.info(

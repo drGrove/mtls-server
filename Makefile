@@ -56,7 +56,7 @@ ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	coverage run -m unittest -v
+	SEED_ON_INIT="0" AUTO_REFRESH_KEYS="0" coverage run -m unittest -v
 ifeq "${CI}" ""
 	$(MAKE) stop-postgres
 endif
@@ -71,7 +71,7 @@ ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	-@coverage run -m unittest $(NAME) -v
+	-@SEED_ON_INIT="0" AUTO_REFRESH_KEYS="0" coverage run -m unittest $(NAME) -v
 ifeq "${CI}" ""
 	$(MAKE) stop-postgres
 endif
@@ -112,6 +112,10 @@ stop-postgres:
 .PHONY: run
 run:
 	@pipenv run python3 server.py
+
+.PHONY: run.debug
+run.debug:
+	@pipenv run python3 -m pdb mtls_server/server.py
 
 .PHONY: run-prod
 run-prod: build-image run-postgres
