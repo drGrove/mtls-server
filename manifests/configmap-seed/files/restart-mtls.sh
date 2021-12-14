@@ -3,5 +3,5 @@
 echo "Cleaning GPG home"
 rm -r ${GNUPGHOME}/*
 
-echo "Restarting mtls process in main container"
-killall uwsgi
+echo "HUP uwsgi so it gracefully reloads"
+killall -1 uwsgi
