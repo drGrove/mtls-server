@@ -28,7 +28,7 @@ spec:
             - name: SCRIPT
               value: /tmp/restart-mtls.sh
             - name: GNUPGHOME
-              value: /tmp/gnupg_home
+              value: /tmp/gnupg_home/gnupg
           volumeMounts:
             - name: sc-user-keys-volume
               mountPath: /tmp/user_keys
@@ -48,7 +48,7 @@ spec:
             - name: SCRIPT
               value: /tmp/restart-mtls.sh
             - name: GNUPGHOME
-              value: /tmp/gnupg_home
+              value: /tmp/gnupg_home/admin_gnupg
           volumeMounts:
             - name: sc-admin-keys-volume
               mountPath: /tmp/admin_keys
