@@ -25,5 +25,5 @@ secretGenerator:
       - ./secrets/ca.key
 images:
   - name: drgrove/mtls-server
-    newTag: v0.19.0
-    digest: sha256:eb66f949f0f29ba90e1d6014f08d049feb79b33d1954055d398e7566f0ba2bf4
+    newTag: v0.19.1
+    digest: sha256:d9247721f1ce7a444311a3cdcdffcd1197243ffa5194b9a6af10daeac5d71240

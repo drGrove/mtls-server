@@ -14,6 +14,10 @@ spec:
               mountPath: /tmp/seeds/user
             - name: sc-admin-keys-volume
               mountPath: /tmp/seeds/admin
+            - name: gnupg-user
+              mountPath: /home/mtls/secrets/gnupg/
+            - name: gnupg-admin
+              mountPath: /home/mtls/secrets/admin_gnupg/
         - name: mtls-init-user-keys
           image: kiwigrid/k8s-sidecar:1.14.2
           env:
@@ -23,6 +27,8 @@ spec:
               value: /tmp/user_keys
             - name: SCRIPT
               value: /tmp/restart-mtls.sh
+            - name: GNUPGHOME
+              value: /tmp/gnupg_home
           volumeMounts:
             - name: sc-user-keys-volume
               mountPath: /tmp/user_keys
@@ -30,6 +36,8 @@ spec:
               mountPath: /tmp/restart-mtls.sh
               subPath: "restart-mtls.sh"
               readOnly: true
+            - name: gnupg-user
+              mountPath: /tmp/gnupg_home
         - name: mtls-init-admin-keys
           image: kiwigrid/k8s-sidecar:1.14.2
           env:
@@ -39,6 +47,8 @@ spec:
               value: /tmp/admin_keys
             - name: SCRIPT
               value: /tmp/restart-mtls.sh
+            - name: GNUPGHOME
+              value: /tmp/gnupg_home
           volumeMounts:
             - name: sc-admin-keys-volume
               mountPath: /tmp/admin_keys
@@ -46,10 +56,16 @@ spec:
               mountPath: /tmp/restart-mtls.sh
               subPath: "restart-mtls.sh"
               readOnly: true
+            - name: gnupg-admin
+              mountPath: /tmp/gnupg_home
       volumes:
         - name: sc-user-keys-volume
           emptyDir: {}
         - name: sc-admin-keys-volume
+          emptyDir: {}
+        - name: gnupg-user
+          emptyDir: {}
+        - name: gnupg-admin
           emptyDir: {}
         - name: mtls-restart-script
           configMap:

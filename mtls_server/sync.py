@@ -46,22 +46,28 @@ class Sync(object):
                         f_path = os.path.join(seed_dir, f)
                         if os.path.isfile(f_path):
                             fingerprint = f.split(".")[0]
-                            with open(f_path, "r") as gpg_data:
-                                gpg_data = str(gpg_data.read())
-                                if trust == "admin":
-                                    import_and_trust(gpg_data, self.admin_gpg)
-                                # If we add an admin, they're also a user,
-                                # so we can just pull the fingerprint once
-                                # and use that for logging. It will only show
-                                # it's being 'added' to the admin store, but
-                                # that's fine since that assumption is already
-                                # made
-                                fingerprint = import_and_trust(
-                                    gpg_data, self.user_gpg
+                            try:
+                                with open(f_path, "r") as key_file:
+                                    logger.debug(f"Opening {f_path} as ascii")
+                                    gpg_data = key_file.read()
+                            except UnicodeDecodeError:
+                                with open(f_path, "rb") as key_file:
+                                    logger.debug(f"Opening {f_path} as binary")
+                                    gpg_data = key_file.read()
+                            if trust == "admin":
+                                import_and_trust(gpg_data, self.admin_gpg)
+                            # If we add an admin, they're also a user,
+                            # so we can just pull the fingerprint once
+                            # and use that for logging. It will only show
+                            # it's being 'added' to the admin store, but
+                            # that's fine since that assumption is already
+                            # made
+                            fingerprint = import_and_trust(
+                                gpg_data, self.user_gpg
+                            )
+                            logger.info(
+                                "Added {fp} to {t} Store".format(
+                                    fp=fingerprint, t=trust
                                 )
-                                logger.info(
-                                    "Added {fp} to {t} Store".format(
-                                        fp=fingerprint, t=trust
-                                    )
-                                )
+                            )
         logger.info("Completed seeding of Trust Databases")

@@ -6,7 +6,6 @@ resources:
   - mtls-serviceaccount.yml
 patches:
   - add-sidecars.patch.yml
-  - ephemeral-keyring.patch.yml
 configMapGenerator:
   - name: mtls-restart-script
     files:
@@ -15,4 +14,3 @@ images:
   - name: kiwigrid/k8s-sidecar
     newTag: 1.14.2
     digest: sha256:80d5a85a72762aef6181941eaccc8449f3b46ccab932e7362d2d71726681d1ec
-
