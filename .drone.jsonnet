@@ -79,8 +79,8 @@ local postgresql = step(
   detach=true,
 );
 
-local test(python_version) = step(
-  'test',
+local unittest(python_version) = step(
+  'unit test',
   'python:' + python_version + '-slim-buster',
   environment={
     PGHOST: 'postgresql',
@@ -102,12 +102,45 @@ local test(python_version) = step(
   ]
 );
 
+local integration_test(python_version) = step(
+  'integration test',
+  'python:' + python_version + '-slim-buster',
+  environment={
+    PGHOST: 'postgresql',
+    COVERALLS_REPO_TOKEN: {
+      from_secret: 'COVERALLS_REPO_TOKEN',
+    },
+    CLEANUP: '0',
+  },
+  commands=[
+    'apt update && apt install -y make cmake gnupg git postgresql-client',
+    'pip3 install pipenv',
+    'make setup-dev',
+    'cp config.ini.example config.ini',
+    'make create-ca',
+    'make integration-test.dev coverage coveralls',
+  ],
+  depends_on=[
+    clone.name,
+  ]
+);
+
 local unittest_pl(pl_type, python_version, trigger={}) = pipeline(
   pl_type + ' Unit Test: ' + python_version,
   steps=[
     clone,
     postgresql,
-    test(python_version),
+    unittest(python_version),
+  ],
+  trigger=trigger,
+);
+
+local integration_test_pl(pl_type, python_version, trigger={}) = pipeline(
+  pl_type + ' Integration Test: ' + python_version,
+  steps=[
+    clone,
+    postgresql,
+    integration_test(python_version),
   ],
   trigger=trigger,
 );
@@ -187,6 +220,15 @@ local tag_trigger = {
   unittest_pl('PR', '3.7', trigger=pr_trigger),
   unittest_pl('Master', '3.7', trigger=master_trigger),
   unittest_pl('Tag', '3.7', trigger=tag_trigger),
+  integration_test_pl('PR', '3.9', trigger=pr_trigger),
+  integration_test_pl('Master', '3.9', trigger=master_trigger),
+  integration_test_pl('Tag', '3.9', trigger=tag_trigger),
+  integration_test_pl('PR', '3.8', trigger=pr_trigger),
+  integration_test_pl('Master', '3.8', trigger=master_trigger),
+  integration_test_pl('Tag', '3.8', trigger=tag_trigger),
+  integration_test_pl('PR', '3.7', trigger=pr_trigger),
+  integration_test_pl('Master', '3.7', trigger=master_trigger),
+  integration_test_pl('Tag', '3.7', trigger=tag_trigger),
   image_build_pl('PR', trigger=pr_trigger, push=false),
   image_build_pl('Master', trigger=master_trigger, push=false),
   image_build_pl('Tag', trigger=tag_trigger, push=true),

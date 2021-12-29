@@ -48,7 +48,7 @@ class CertProcessorUnsupportedCriticalExtensionError(Exception):
 
 
 class CertProcessor:
-    def __init__(self, config):
+    def __init__(self, config, user_gnupg, admin_gnupg):
         """Cerificate Processor.
 
         Args:
@@ -194,7 +194,7 @@ class CertProcessor:
                 os.makedirs(ca_dir)
             with open(ca_key_path, "rb") as key_file:
                 if os.environ.get("CA_KEY_PASSWORD"):
-                    pw = os.environ.get("CA_KEY_PASSWORD").encode("UTF-8")
+                    pw = os.environ.get("CA_KEY_PASSWORD", "").encode("UTF-8")
                 else:
                     pw = None
                 ca_key = serialization.load_pem_private_key(
@@ -210,7 +210,7 @@ class CertProcessor:
 
             if os.environ.get("CA_KEY_PASSWORD"):
                 encryption_algorithm = serialization.BestAvailableEncryption(
-                    os.environ.get("CA_KEY_PASSWORD").encode("UTF-8")
+                    os.environ.get("CA_KEY_PASSWORD", "").encode("UTF-8")
                 )
             else:
                 encryption_algorithm = self.no_encyption

@@ -6,8 +6,9 @@ import unittest
 from configparser import ConfigParser
 import gnupg
 
-from mtls_server.handler import Handler
+from mtls_server.cert_processor import CertProcessor
 from mtls_server.config import Config
+from mtls_server.sync import Sync
 from mtls_server.utils import User
 from mtls_server.utils import gen_passwd
 from mtls_server.utils import generate_key
@@ -83,6 +84,7 @@ class TestSync(unittest.TestCase):
     def test_seed_users(self):
         seed_subpath = "user"
         os.makedirs("{}/{}".format(self.SEED_DIR.name, seed_subpath))
+        user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         for user in self.new_users:
             fingerprint = user.fingerprint
             pgp_armored_key = self.new_user_gpg.export_keys(fingerprint)
@@ -93,8 +95,7 @@ class TestSync(unittest.TestCase):
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(Config)
-        user_gpg = handler.cert_processor.user_gpg
+        Sync(Config).seed()
         stored_fingerprints = []
         for key in user_gpg.list_keys():
             stored_fingerprints.append(key["fingerprint"])
@@ -104,6 +105,7 @@ class TestSync(unittest.TestCase):
     def test_seed_admins(self):
         seed_subpath = "admin"
         os.makedirs("{}/{}".format(self.SEED_DIR.name, seed_subpath))
+        admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         for admin in self.new_admins:
             fingerprint = admin.fingerprint
             pgp_armored_key = self.new_admin_gpg.export_keys(fingerprint)
@@ -114,8 +116,7 @@ class TestSync(unittest.TestCase):
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(Config)
-        admin_gpg = handler.cert_processor.admin_gpg
+        Sync(Config).seed()
         stored_fingerprints = []
         for key in admin_gpg.list_keys():
             stored_fingerprints.append(key["fingerprint"])
@@ -125,6 +126,8 @@ class TestSync(unittest.TestCase):
     def test_seed_separate_admin_and_user(self):
         for seed_subpath in ["user", "admin"]:
             os.makedirs("{}/{}".format(self.SEED_DIR.name, seed_subpath))
+        user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
+        admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
         for user in self.new_users:
             fingerprint = user.fingerprint
             pgp_armored_key = self.new_user_gpg.export_keys(fingerprint)
@@ -145,9 +148,8 @@ class TestSync(unittest.TestCase):
             )
             with open(fingerprint_file, "w") as fpf:
                 fpf.write(pgp_armored_key)
-        handler = Handler(Config)
-        user_gpg = handler.cert_processor.user_gpg
-        admin_gpg = handler.cert_processor.admin_gpg
+
+        Sync(Config).seed()
         user_stored_fingerprints = []
         admin_stored_fingerprints = []
         for key in user_gpg.list_keys():

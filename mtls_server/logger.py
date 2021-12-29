@@ -1,4 +1,7 @@
+import os
 import logging
+
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 
 # Log to the screen
 stream_handler = logging.StreamHandler()
@@ -9,5 +12,5 @@ stream_handler.setFormatter(
     )
 )
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(level=LOGLEVEL)
 logger.addHandler(stream_handler)

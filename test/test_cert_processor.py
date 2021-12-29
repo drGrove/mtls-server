@@ -204,9 +204,9 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -303,9 +303,9 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
         self.engine.conn.commit()
         self.engine.init_db()
 
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -398,7 +398,7 @@ class TestCertProcessorMissingStorage(TestCertProcessorBase):
     def test_missing_storage(self):
         with self.assertRaises(storage.StorageEngineMissing):
             Config.init_config(config=self.config)
-            self.cert_processor = CertProcessor(Config)
+            self.cert_processor = CertProcessor(Config, None, None)
 
 
 class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
@@ -441,9 +441,9 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -537,9 +537,9 @@ class TestCertProcessorPasswordCAKey(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -631,9 +631,9 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User(
                 "user@host.com",

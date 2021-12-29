@@ -56,7 +56,7 @@ ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	SEED_ON_INIT="0" AUTO_REFRESH_KEYS="0" coverage run -m unittest -v
+	coverage run -m unittest discover -v -s test
 ifeq "${CI}" ""
 	$(MAKE) stop-postgres
 endif
@@ -69,9 +69,9 @@ test.dev:
 test-by-name:
 ifeq "${CI}" ""
 	$(MAKE) run-postgres
-	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
+	@until pg_isready -U postgres -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	-@SEED_ON_INIT="0" AUTO_REFRESH_KEYS="0" coverage run -m unittest $(NAME) -v
+	-@coverage run -m unittest $(NAME) -v
 ifeq "${CI}" ""
 	$(MAKE) stop-postgres
 endif
@@ -79,6 +79,22 @@ endif
 .PHONY: test-by-name.dev
 test-by-name.dev:
 	pipenv run $(MAKE) test-by-name
+
+.PHONY: integration-test
+integration-test:
+ifeq "${CI}" ""
+	-$(MAKE) stop-postgres
+	$(MAKE) run-postgres
+	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
+endif
+	coverage run -m unittest discover -v -s integration_test
+ifeq "${CI}" ""
+	$(MAKE) stop-postgres
+endif
+
+.PHONY: test.dev
+integration-test.dev:
+	pipenv run $(MAKE) integration-test
 
 .PHONY: build-image
 build-image:

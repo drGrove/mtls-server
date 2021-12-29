@@ -11,6 +11,16 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
+from .logger import logger
+
+
+class PGPKeyNotFoundException(Exception):
+    pass
+
+
+class PGPTrustException(Exception):
+    pass
+
 
 def generate_key(key_size=4096):
     return rsa.generate_private_key(
@@ -192,3 +202,26 @@ def time_in_range(start, end, t):
         return start <= t <= end
     else:
         return start <= t or t <= end
+
+def has_user(gpg, fingerprint):
+    keys = gpg.list_keys(keys=fingerprint)
+    if len(keys) == 0:
+        return False
+    return True
+
+def add_and_trust_user(gpg, fingerprint, keyserver="keyserver.ubuntu.com"):
+    logger.info(f"Retrieving key {fingerprint} from {keyserver}")
+    result = gpg.recv_keys(
+        keyserver,
+        fingerprint,
+    )
+    if result.count is None or result.count == 0:
+        raise PGPKeyNotFoundException()
+
+    logger.info(f"Trusting {fingerprint}")
+    try:
+        result = gpg.trust_keys(
+            [fingerprint], "TRUST_ULTIMATE"
+        )
+    except ValueError:
+        raise PGPTrustException()
