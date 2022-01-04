@@ -1,529 +1,1174 @@
 ---
-kind: pipeline
-name: "PR Unit Test: 3.9"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.9-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - pull_request
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "PR Unit Test: 3.9",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.9-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: "Master Unit Test: 3.9"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.9-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - push
-  ref:
-  - refs/heads/master
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Master Unit Test: 3.9",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.9-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
 ---
-kind: pipeline
-name: "Tag Unit Test: 3.9"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.9-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - tag
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Tag Unit Test: 3.9",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.9-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: "PR Unit Test: 3.8"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.8-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - pull_request
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "PR Unit Test: 3.8",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.8-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: "Master Unit Test: 3.8"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.8-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - push
-  ref:
-  - refs/heads/master
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Master Unit Test: 3.8",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.8-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
 ---
-kind: pipeline
-name: "Tag Unit Test: 3.8"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.8-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - tag
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Tag Unit Test: 3.8",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.8-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: "PR Unit Test: 3.7"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.7-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - pull_request
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "PR Unit Test: 3.7",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.7-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: "Master Unit Test: 3.7"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.7-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - push
-  ref:
-  - refs/heads/master
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Master Unit Test: 3.7",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.7-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
 ---
-kind: pipeline
-name: "Tag Unit Test: 3.7"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: postgresql
-  image: postgres:12
-  detach: true
-  environment:
-    POSTGRES_DB: mtls
-    POSTGRES_HOST_AUTH_METHOD: trust
-    POSTGRES_PASSWORD: mtls
-
-- name: test
-  image: python:3.7-slim-buster
-  commands:
-  - apt update && apt install -y make cmake gnupg git postgresql-client
-  - pip3 install pipenv
-  - make setup-dev
-  - cp config.ini.example config.ini
-  - make create-ca
-  - make test.dev coverage coveralls
-  environment:
-    CLEANUP: 0
-    COVERALLS_REPO_TOKEN:
-      from_secret: COVERALLS_REPO_TOKEN
-    PGHOST: postgresql
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - tag
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Tag Unit Test: 3.7",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.7-slim-buster",
+         "name": "unit test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: "PR Build: Image"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: Build
-  image: drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108
-  settings:
-    password:
-      from_secret: drgrovero
-    reproducible: true
-    username: drgrovero
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - pull_request
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "PR Integration Test: 3.9",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.9-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
 ---
-kind: pipeline
-name: "Master Build: Image"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: Build
-  image: drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108
-  settings:
-    password:
-      from_secret: drgrovero
-    reproducible: true
-    username: drgrovero
-  depends_on:
-  - clone
-
-trigger:
-  event:
-  - push
-  ref:
-  - refs/heads/master
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Master Integration Test: 3.9",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.9-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
 ---
-kind: pipeline
-name: "Tag Build: Image"
-
-platform:
-  os: linux
-  arch: amd64
-
-clone:
-  disable: true
-
-steps:
-- name: clone
-  image: plugins/git
-  settings:
-    tags: true
-
-- name: Get Tag
-  image: python:3.9-slim-buster
-  commands:
-  - apt update && apt install -y git
-  - git describe --tags > .tags
-  depends_on:
-  - clone
-
-- name: Build
-  image: drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108
-  settings:
-    password:
-      from_secret: drgrovebot
-    repo: drgrove/mtls-server
-    reproducible: true
-    username: drgrovebot
-  depends_on:
-  - Get Tag
-
-trigger:
-  event:
-  - tag
-
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Tag Integration Test: 3.9",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.9-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "PR Integration Test: 3.8",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.8-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Master Integration Test: 3.8",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.8-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Tag Integration Test: 3.8",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.8-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "PR Integration Test: 3.7",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.7-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Master Integration Test: 3.7",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.7-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Tag Integration Test: 3.7",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "detach": true,
+         "environment": {
+            "POSTGRES_DB": "mtls",
+            "POSTGRES_HOST_AUTH_METHOD": "trust",
+            "POSTGRES_PASSWORD": "mtls"
+         },
+         "image": "postgres:12",
+         "name": "postgresql"
+      },
+      {
+         "commands": [
+            "apt update && apt install -y make cmake gnupg git postgresql-client",
+            "pip3 install pipenv",
+            "make setup-dev",
+            "cp config.ini.example config.ini",
+            "make create-ca",
+            "make integration-test.dev coverage coveralls"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "CLEANUP": "0",
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            },
+            "PGHOST": "postgresql"
+         },
+         "image": "python:3.7-slim-buster",
+         "name": "integration test"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "PR Build: Image",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "depends_on": [
+            "clone"
+         ],
+         "image": "drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108",
+         "name": "Build",
+         "settings": {
+            "password": {
+               "from_secret": "drgrovero"
+            },
+            "reproducible": true,
+            "username": "drgrovero"
+         }
+      }
+   ],
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Master Build: Image",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": null,
+         "depends_on": [
+            "clone"
+         ],
+         "image": "drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108",
+         "name": "Build",
+         "settings": {
+            "password": {
+               "from_secret": "drgrovero"
+            },
+            "reproducible": true,
+            "username": "drgrovero"
+         }
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "kind": "pipeline",
+   "name": "Tag Build: Image",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": [
+            "apt update && apt install -y git",
+            "git describe --tags > .tags"
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "image": "python:3.9-slim-buster",
+         "name": "Get Tag"
+      },
+      {
+         "commands": null,
+         "depends_on": [
+            "Get Tag"
+         ],
+         "image": "drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108",
+         "name": "Build",
+         "settings": {
+            "password": {
+               "from_secret": "drgrovebot"
+            },
+            "repo": "drgrove/mtls-server",
+            "reproducible": true,
+            "username": "drgrovebot"
+         }
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
+}
 ---
 kind: signature
-hmac: 9ee80a2ac599b4a70fa82d3b74566e67fa79244f42bea244a12e16e86956663a
+hmac: 7b2255ac794f6c7fd4d5eed8c741ccc03e49237f5a4388ef9a037d5ec12f311d
 
 ...
