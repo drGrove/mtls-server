@@ -1,11 +1,6 @@
-import base64
 import json
 import logging
 import unittest
-
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
 
 from mtls_server.server import create_app
 
