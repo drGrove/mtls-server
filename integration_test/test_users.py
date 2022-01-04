@@ -12,7 +12,7 @@ from integration_test.base import PostgresqlBaseTestCase
 from integration_test.base import SQLiteBaseTestCase
 
 
-# logging.disable(logging.CRITICAL)
+logging.disable(logging.CRITICAL)
 
 
 class BaseUserTests(BaseTests):
