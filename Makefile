@@ -47,6 +47,7 @@ coverage:
 
 .PHONY: coveralls
 coveralls:
+	@pipenv run coverage combine
 	@pipenv run coveralls
 
 .PHONY: test
