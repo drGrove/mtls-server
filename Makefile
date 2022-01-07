@@ -92,7 +92,7 @@ ifeq "${CI}" ""
 	$(MAKE) stop-postgres
 endif
 
-.PHONY: test.dev
+.PHONY: integration-test.dev
 integration-test.dev:
 	pipenv run $(MAKE) integration-test
 
