@@ -205,9 +205,7 @@ def time_in_range(start, end, t):
 
 def has_user(gpg, fingerprint):
     keys = gpg.list_keys(keys=fingerprint)
-    if len(keys) == 0:
-        return False
-    return True
+    return len(keys) != 0
 
 def add_and_trust_user(gpg, fingerprint, keyserver="keyserver.ubuntu.com"):
     logger.info(f"Retrieving key {fingerprint} from {keyserver}")
