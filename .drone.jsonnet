@@ -5,6 +5,29 @@ local images = {
   python: 'python:3.9-slim-buster',
 };
 
+local pr_trigger = {
+  event: [
+    'pull_request',
+  ],
+};
+
+local master_trigger = {
+  event: [
+    'push',
+  ],
+  ref: {
+    include: [
+      'refs/heads/master',
+    ],
+  },
+};
+
+local tag_trigger = {
+  event: [
+    'tag',
+  ],
+};
+
 local pipeline(
   name,
   kind='pipeline',
@@ -145,6 +168,45 @@ local integration_test_pl(pl_type, python_version, trigger={}) = pipeline(
   trigger=trigger,
 );
 
+local notify_coveralls_complete = step(
+  'Coverage Complete',
+  images.python,
+  environment={
+    COVERALLS_REPO_TOKEN: {
+      from_secret: 'COVERALLS_REPO_TOKEN',
+    },
+  },
+  commands=[
+    'curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$DRONE_BUILD_NUMBER&payload[status]=done"',
+  ],
+  depends_on=[
+    clone.name,
+  ],
+);
+
+local coveralls_complete_pl(trigger={}) = pipeline(
+  'Coverage',
+  steps=[
+    clone,
+    notify_coveralls_complete,
+  ],
+  trigger=trigger,
+  depends_on=[
+    unittest_pl('PR', '3.10', trigger=pr_trigger).name,
+    unittest_pl('Master', '3.10', trigger=master_trigger).name,
+    unittest_pl('Tag', '3.10', trigger=tag_trigger).name,
+    unittest_pl('PR', '3.9', trigger=pr_trigger).name,
+    unittest_pl('Master', '3.9', trigger=master_trigger).name,
+    unittest_pl('Tag', '3.9', trigger=tag_trigger).name,
+    integration_test_pl('PR', '3.10', trigger=pr_trigger).name,
+    integration_test_pl('Master', '3.10', trigger=master_trigger).name,
+    integration_test_pl('Tag', '3.10', trigger=tag_trigger).name,
+    integration_test_pl('PR', '3.9', trigger=pr_trigger).name,
+    integration_test_pl('Master', '3.9', trigger=master_trigger).name,
+    integration_test_pl('Tag', '3.9', trigger=tag_trigger).name,
+  ]
+);
+
 local get_image_tag = step(
   'Get Tag',
   images.python,
@@ -187,29 +249,6 @@ local image_build_pl(pl_type, trigger={}, push=false) = pipeline(
   trigger=trigger
 );
 
-local pr_trigger = {
-  event: [
-    'pull_request',
-  ],
-};
-
-local master_trigger = {
-  event: [
-    'push',
-  ],
-  ref: {
-    include: [
-      'refs/heads/master',
-    ],
-  },
-};
-
-local tag_trigger = {
-  event: [
-    'tag',
-  ],
-};
-
 [
   unittest_pl('PR', '3.10', trigger=pr_trigger),
   unittest_pl('Master', '3.10', trigger=master_trigger),
@@ -217,24 +256,13 @@ local tag_trigger = {
   unittest_pl('PR', '3.9', trigger=pr_trigger),
   unittest_pl('Master', '3.9', trigger=master_trigger),
   unittest_pl('Tag', '3.9', trigger=tag_trigger),
-  unittest_pl('PR', '3.8', trigger=pr_trigger),
-  unittest_pl('Master', '3.8', trigger=master_trigger),
-  unittest_pl('Tag', '3.8', trigger=tag_trigger),
-  unittest_pl('PR', '3.7', trigger=pr_trigger),
-  unittest_pl('Master', '3.7', trigger=master_trigger),
-  unittest_pl('Tag', '3.7', trigger=tag_trigger),
   integration_test_pl('PR', '3.10', trigger=pr_trigger),
   integration_test_pl('Master', '3.10', trigger=master_trigger),
   integration_test_pl('Tag', '3.10', trigger=tag_trigger),
   integration_test_pl('PR', '3.9', trigger=pr_trigger),
   integration_test_pl('Master', '3.9', trigger=master_trigger),
   integration_test_pl('Tag', '3.9', trigger=tag_trigger),
-  integration_test_pl('PR', '3.8', trigger=pr_trigger),
-  integration_test_pl('Master', '3.8', trigger=master_trigger),
-  integration_test_pl('Tag', '3.8', trigger=tag_trigger),
-  integration_test_pl('PR', '3.7', trigger=pr_trigger),
-  integration_test_pl('Master', '3.7', trigger=master_trigger),
-  integration_test_pl('Tag', '3.7', trigger=tag_trigger),
+  coveralls_complete_pl(),
   image_build_pl('PR', trigger=pr_trigger, push=false),
   image_build_pl('Master', trigger=master_trigger, push=false),
   image_build_pl('Tag', trigger=tag_trigger, push=true),
