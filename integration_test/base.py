@@ -151,12 +151,14 @@ class PostgresqlBaseTestCase(TestCase):
 class SQLiteBaseTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
+        logging.disable(logging.CRITICAL)
         cls.env_patcher = mock.patch.dict(os.environ, {"SEED_ON_INIT": "0"})
         cls.env_patcher.start()
 
 
     @classmethod
     def tearDownClass(cls):
+        logging.disable(logging.NOTSET)
         cls.env_patcher.stop()
 
     def setUp(self):
