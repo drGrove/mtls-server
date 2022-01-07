@@ -211,6 +211,9 @@ local tag_trigger = {
 };
 
 [
+  unittest_pl('PR', '3.10', trigger=pr_trigger),
+  unittest_pl('Master', '3.10', trigger=master_trigger),
+  unittest_pl('Tag', '3.10', trigger=tag_trigger),
   unittest_pl('PR', '3.9', trigger=pr_trigger),
   unittest_pl('Master', '3.9', trigger=master_trigger),
   unittest_pl('Tag', '3.9', trigger=tag_trigger),
@@ -220,6 +223,9 @@ local tag_trigger = {
   unittest_pl('PR', '3.7', trigger=pr_trigger),
   unittest_pl('Master', '3.7', trigger=master_trigger),
   unittest_pl('Tag', '3.7', trigger=tag_trigger),
+  integration_test_pl('PR', '3.10', trigger=pr_trigger),
+  integration_test_pl('Master', '3.10', trigger=master_trigger),
+  integration_test_pl('Tag', '3.10', trigger=tag_trigger),
   integration_test_pl('PR', '3.9', trigger=pr_trigger),
   integration_test_pl('Master', '3.9', trigger=master_trigger),
   integration_test_pl('Tag', '3.9', trigger=tag_trigger),
