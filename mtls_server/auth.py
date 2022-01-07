@@ -58,7 +58,7 @@ def login_required(f):
                 data
             )
             if verified.trust_level is not None and verified.trust_level >= verified.TRUST_ULTIMATE:
-                logger.debug(f"autheticated user {verified.pubkey_fingerprint} is admin")
+                logger.debug(f"authenticated user {verified.pubkey_fingerprint} is admin")
                 g.is_admin = True
 
             if not g.is_admin:
