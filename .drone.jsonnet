@@ -1,4 +1,5 @@
 local images = {
+  curl: 'alpine/curl@sha256:c64976d53728ca1b4918a49257845af27e343c4a79090788f83afe9f3e800965',
   // https://github.com/drGrove/drone-kaniko/tree/v0.7.0
   kaniko: 'drgrove/drone-kaniko@sha256:e3045421c3683e6baf5628b22ea0ee1cd7ae217f4de0e1bc53a0a1a20335b108',
   postgres: 'postgres:12',
@@ -170,7 +171,7 @@ local integration_test_pl(pl_type, python_version, trigger={}) = pipeline(
 
 local notify_coveralls_complete = step(
   'Coverage Complete',
-  images.python,
+  images.curl,
   environment={
     COVERALLS_REPO_TOKEN: {
       from_secret: 'COVERALLS_REPO_TOKEN',

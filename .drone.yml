@@ -732,7 +732,7 @@
                "from_secret": "COVERALLS_REPO_TOKEN"
             }
          },
-         "image": "python:3.9-slim-buster",
+         "image": "alpine/curl@sha256:c64976d53728ca1b4918a49257845af27e343c4a79090788f83afe9f3e800965",
          "name": "Coverage Complete"
       }
    ],
@@ -871,6 +871,6 @@
 }
 ---
 kind: signature
-hmac: af7cbe7d5af069b5f560ac65ebc9f1c4bdf536a588a7d5ca70c21311c840f9cf
+hmac: 4ee266d6a9e4b65040d01968d326c3a4f3e0edfe610eb43b2fbf020e2d803bfc
 
 ...
