@@ -187,7 +187,7 @@ def create_app(config=None):
             certs = cert_processor.storage.get_cert(serial, fingerprint=g.user_fingerprint)
 
         if not len(certs):
-            return error_response(f"No certificate", 404)
+            return error_response("No certificate", 404)
         for cert in certs:
             cert = x509.load_pem_x509_certificate(
                 str(cert).encode("UTF-8"), backend=default_backend()
@@ -207,11 +207,11 @@ def create_app(config=None):
         body = request.get_json()
         logger.debug(body)
         if not body:
-            return error_response(f"Could not parse body", 400)
+            return error_response("Could not parse body", 400)
         keyserver = Config.get("gnupg", "keyserver", "keyserver.ubuntu.com")
         fingerprint = body.get('fingerprint', None)
         if not fingerprint:
-            return error_response(f"Could not parse body", 400)
+            return error_response("Could not parse body", 400)
         admin = body.get('admin', False)
         if not fingerprint:
             return error_response("Fingerprint missing", 400)
