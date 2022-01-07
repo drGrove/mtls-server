@@ -710,7 +710,7 @@
       "Tag Integration Test: 3.9"
    ],
    "kind": "pipeline",
-   "name": "Coverage",
+   "name": "PR: Coverage",
    "steps": [
       {
          "commands": null,
@@ -736,7 +736,120 @@
          "name": "Coverage Complete"
       }
    ],
-   "trigger": { }
+   "trigger": {
+      "event": [
+         "pull_request"
+      ]
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "depends_on": [
+      "PR Unit Test: 3.10",
+      "Master Unit Test: 3.10",
+      "Tag Unit Test: 3.10",
+      "PR Unit Test: 3.9",
+      "Master Unit Test: 3.9",
+      "Tag Unit Test: 3.9",
+      "PR Integration Test: 3.10",
+      "Master Integration Test: 3.10",
+      "Tag Integration Test: 3.10",
+      "PR Integration Test: 3.9",
+      "Master Integration Test: 3.9",
+      "Tag Integration Test: 3.9"
+   ],
+   "kind": "pipeline",
+   "name": "Master: Coverage",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": [
+            "curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d \"payload[build_num]=$DRONE_BUILD_NUMBER&payload[status]=done\""
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            }
+         },
+         "image": "alpine/curl@sha256:c64976d53728ca1b4918a49257845af27e343c4a79090788f83afe9f3e800965",
+         "name": "Coverage Complete"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "push"
+      ],
+      "ref": {
+         "include": [
+            "refs/heads/master"
+         ]
+      }
+   }
+}
+---
+{
+   "clone": {
+      "disable": true
+   },
+   "depends_on": [
+      "PR Unit Test: 3.10",
+      "Master Unit Test: 3.10",
+      "Tag Unit Test: 3.10",
+      "PR Unit Test: 3.9",
+      "Master Unit Test: 3.9",
+      "Tag Unit Test: 3.9",
+      "PR Integration Test: 3.10",
+      "Master Integration Test: 3.10",
+      "Tag Integration Test: 3.10",
+      "PR Integration Test: 3.9",
+      "Master Integration Test: 3.9",
+      "Tag Integration Test: 3.9"
+   ],
+   "kind": "pipeline",
+   "name": "Tag: Coverage",
+   "steps": [
+      {
+         "commands": null,
+         "image": "plugins/git",
+         "name": "clone",
+         "settings": {
+            "tags": true
+         }
+      },
+      {
+         "commands": [
+            "curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d \"payload[build_num]=$DRONE_BUILD_NUMBER&payload[status]=done\""
+         ],
+         "depends_on": [
+            "clone"
+         ],
+         "environment": {
+            "COVERALLS_REPO_TOKEN": {
+               "from_secret": "COVERALLS_REPO_TOKEN"
+            }
+         },
+         "image": "alpine/curl@sha256:c64976d53728ca1b4918a49257845af27e343c4a79090788f83afe9f3e800965",
+         "name": "Coverage Complete"
+      }
+   ],
+   "trigger": {
+      "event": [
+         "tag"
+      ]
+   }
 }
 ---
 {
@@ -871,6 +984,6 @@
 }
 ---
 kind: signature
-hmac: 4ee266d6a9e4b65040d01968d326c3a4f3e0edfe610eb43b2fbf020e2d803bfc
+hmac: 8dcb97acb28201275d74c8cc4e361e1b536921ba4fcd7a96b3fba8145d4f7069
 
 ...

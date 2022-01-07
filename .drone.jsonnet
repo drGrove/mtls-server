@@ -185,8 +185,8 @@ local notify_coveralls_complete = step(
   ],
 );
 
-local coveralls_complete_pl(trigger={}) = pipeline(
-  'Coverage',
+local coveralls_complete_pl(pl_type, trigger={}) = pipeline(
+  pl_type + ': Coverage',
   steps=[
     clone,
     notify_coveralls_complete,
@@ -263,7 +263,9 @@ local image_build_pl(pl_type, trigger={}, push=false) = pipeline(
   integration_test_pl('PR', '3.9', trigger=pr_trigger),
   integration_test_pl('Master', '3.9', trigger=master_trigger),
   integration_test_pl('Tag', '3.9', trigger=tag_trigger),
-  coveralls_complete_pl(),
+  coveralls_complete_pl('PR', trigger=pr_trigger),
+  coveralls_complete_pl('Master', trigger=master_trigger),
+  coveralls_complete_pl('Tag', trigger=tag_trigger),
   image_build_pl('PR', trigger=pr_trigger, push=false),
   image_build_pl('Master', trigger=master_trigger, push=false),
   image_build_pl('Tag', trigger=tag_trigger, push=true),
