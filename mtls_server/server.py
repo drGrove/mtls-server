@@ -135,7 +135,7 @@ def create_app(config=None):
         csr_str = body["csr"]
         csr = cert_processor.get_csr(csr_str)
         if csr is None:
-            return error_response("Could not load CSR")
+            return error_response("Could not load CSR", 400)
         cert = None
         try:
             logger.info(
@@ -153,7 +153,7 @@ def create_app(config=None):
             return error_response("Internal Error")
         except CertProcessorMismatchedPublicKeyError:
             logger.error("CSR Public Key does not match found certificate.")
-            return error_response("Internal Error")
+            return error_response("CSR Public key does not match previous user key", 400)
         except CertProcessorNotAdminUserError:
             logger.error(
                 "User {} is not an admin and attempted ".format(fingerprint)
