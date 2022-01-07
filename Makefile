@@ -43,12 +43,12 @@ lint:
 
 .PHONY: coverage
 coverage:
-	@pipenv run coverage combine -a
+	-@pipenv run coverage combine -a
 	@pipenv run coverage report -m
 
 .PHONY: coveralls
 coveralls:
-	@pipenv run coverage combine -a
+	-@pipenv run coverage combine -a
 	@pipenv run coveralls
 
 .PHONY: test
