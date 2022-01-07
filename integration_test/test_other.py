@@ -1,5 +1,4 @@
 import json
-import logging
 import unittest
 
 from mtls_server.server import create_app
@@ -7,8 +6,6 @@ from mtls_server.server import create_app
 from integration_test.base import BaseTests
 from integration_test.base import SQLiteBaseTestCase
 
-
-logging.disable(logging.CRITICAL)
 
 class OtherTests(BaseTests, SQLiteBaseTestCase):
     @classmethod

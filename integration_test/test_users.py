@@ -1,6 +1,5 @@
 import base64
 import json
-import logging
 import os
 import unittest
 
@@ -10,9 +9,6 @@ from mtls_server.server import create_app
 from integration_test.base import BaseTests
 from integration_test.base import PostgresqlBaseTestCase
 from integration_test.base import SQLiteBaseTestCase
-
-
-logging.disable(logging.CRITICAL)
 
 
 class BaseUserTests(BaseTests):

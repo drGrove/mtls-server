@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 from unittest import TestCase
@@ -20,6 +21,7 @@ class BaseTests(TestCase):
     users: list
     admin_users: list
     invalid_users: list
+    new_users: list
     user_gpg: gnupg.GPG
     admin_gpg: gnupg.GPG
     invalid_gpg: gnupg.GPG
@@ -28,11 +30,13 @@ class BaseTests(TestCase):
 class PostgresqlBaseTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
+        logging.disable(logging.CRITICAL)
         cls.env_patcher = mock.patch.dict(os.environ, {"SEED_ON_INIT": "0"})
         cls.env_patcher.start()
 
     @classmethod
     def tearDownClass(cls):
+        logging.disable(logging.NOTSET)
         cls.env_patcher.stop()
 
     def setUp(self):

@@ -1,6 +1,5 @@
 import base64
 import json
-import logging
 import unittest
 
 from cryptography import x509
@@ -13,8 +12,6 @@ from integration_test.base import BaseTests
 from integration_test.base import PostgresqlBaseTestCase
 from integration_test.base import SQLiteBaseTestCase
 
-
-logging.disable(logging.CRITICAL)
 
 class BaseCertificateTests(BaseTests):
     def get_ca_cert(self):
