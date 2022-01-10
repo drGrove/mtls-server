@@ -36,10 +36,10 @@ def login_required(f):
         allowed_tokens = ['PGP-SIG']
         g.is_admin = False
 
-        if not request.headers['Authorization']:
+        if not (authorization_header := request.headers['Authorization']):
             return error_response("authentication required", 401)
 
-        token_type, token = request.headers['Authorization'].split(' ')
+        token_type, token = authorization_header.split(' ')
 
         if token_type not in allowed_tokens:
             return error_response("authentication required", 401)
