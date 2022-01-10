@@ -73,7 +73,9 @@ def login_required(f):
                 return error_response("unauthorized", 401)
 
             now = time.time()
-            if not time_in_range(now-5, now, int(verified.timestamp)):
+            # Time in seconds that signed messages will be accepted once signed.
+            sig_auth_time_range = int(os.environ.get('SIG_AUTH_TIME_RANGE', '5'))
+            if not time_in_range(now-sig_auth_time_range, now, int(verified.timestamp)):
                 return error_response("signature timestamp out of range", 401)
 
             g.user_fingerprint = verified.pubkey_fingerprint
