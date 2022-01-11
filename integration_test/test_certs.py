@@ -157,6 +157,33 @@ class BaseCertificateTests(BaseTests):
         )
         self.assertEqual(response.status_code, 404)
 
+    def bad_authorization(self):
+        user = self.users[0]
+        csr = user.gen_csr()
+        payload = {
+            "csr": csr.public_bytes(serialization.Encoding.PEM).decode(
+                "utf-8"
+            ),
+            "lifetime": 60,
+        }
+        sig = self.user_gpg.sign(
+            json.dumps(payload),
+            keyid=user.fingerprint,
+            detach=True,
+            passphrase=user.password,
+        )
+        pgpb64 = base64.b64encode(str(sig).encode('ascii'))
+        response = self.app.post(
+            "/certs",
+            json=payload,
+            content_type="application/json",
+            # Authorization header has 2 spaces
+            headers={
+                'Authorization': f'PGP-SIG  {str(pgpb64.decode("utf-8"))}'
+            }
+        )
+        self.assertEqual(response.status_code, 500)
+
     def get_version(self):
         with open("VERSION", "r") as v:
             version = v.readline().strip()
@@ -205,6 +232,9 @@ class TestCertificatesSQLite(SQLiteBaseTestCase, BaseCertificateTests):
 
     def test_get_version(self):
         self.get_version()
+
+    def test_bad_authorization(self):
+        self.bad_authorization()
 
 
 class TestCertificatesPostgresql(PostgresqlBaseTestCase, BaseCertificateTests):

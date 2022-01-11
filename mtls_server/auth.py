@@ -39,7 +39,11 @@ def login_required(f):
         if not (authorization_header := request.headers['Authorization']):
             return error_response("authentication required", 401)
 
-        token_type, token = authorization_header.split(' ')
+        try:
+            token_type, token = authorization_header.split(' ')
+        except Exception as e:
+            logger.warning(e)
+            return error_response("could not validate authentication", 500)
 
         if token_type not in allowed_tokens:
             return error_response("authentication required", 401)
