@@ -162,6 +162,46 @@ class TestSync(unittest.TestCase):
             self.assertIn(user.fingerprint, user_stored_fingerprints)
             self.assertNotIn(user.fingerprint, admin_stored_fingerprints)
 
+    def test_seed_binary_file(self):
+        for seed_subpath in ["user", "admin"]:
+            os.makedirs("{}/{}".format(self.SEED_DIR.name, seed_subpath))
+        user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
+        admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        for user in self.new_users:
+            fingerprint = user.fingerprint
+            pgp_armored_key = self.new_user_gpg.export_keys(fingerprint, armor=False)
+            fingerprint_file = "{base}/{subpath}/{fingerprint}.gpg".format(
+                base=self.SEED_DIR.name,
+                subpath="user",
+                fingerprint=fingerprint,
+            )
+            with open(fingerprint_file, "wb") as fpf:
+                fpf.write(pgp_armored_key)
+        for admin in self.new_admins:
+            fingerprint = admin.fingerprint
+            pgp_armored_key = self.new_admin_gpg.export_keys(fingerprint, armor=False)
+            fingerprint_file = "{base}/{subpath}/{fingerprint}.gpg".format(
+                base=self.SEED_DIR.name,
+                subpath="admin",
+                fingerprint=fingerprint,
+            )
+            with open(fingerprint_file, "wb") as fpf:
+                fpf.write(pgp_armored_key)
+
+        Sync(Config).seed()
+        user_stored_fingerprints = []
+        admin_stored_fingerprints = []
+        for key in user_gpg.list_keys():
+            user_stored_fingerprints.append(key["fingerprint"])
+        for key in admin_gpg.list_keys():
+            admin_stored_fingerprints.append(key["fingerprint"])
+        for admin in self.new_admins:
+            self.assertIn(admin.fingerprint, admin_stored_fingerprints)
+            self.assertIn(admin.fingerprint, user_stored_fingerprints)
+        for user in self.new_users:
+            self.assertIn(user.fingerprint, user_stored_fingerprints)
+            self.assertNotIn(user.fingerprint, admin_stored_fingerprints)
+
 
 if __name__ == "__main__":
     unittest.main()
