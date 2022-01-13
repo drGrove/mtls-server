@@ -61,18 +61,16 @@ class TestCertProcessorBase(unittest.TestCase):
 
     def get_crl(self):
         rev_serial_num = None
-        for i, user in enumerate(self.users):
-            csr = user.gen_csr()
-            bcert = self.cert_processor.generate_cert(
-                csr, 60, user.fingerprint
-            )
-            cert = x509.load_pem_x509_certificate(
-                bcert, backend=default_backend()
-            )
-            if i == 1:
-                self.cert_processor.revoke_cert(cert.serial_number)
-                rev_serial_num = cert.serial_number
-
+        user = self.users[0]
+        csr = user.gen_csr()
+        bcert = self.cert_processor.generate_cert(
+            csr, 60, user.fingerprint
+        )
+        cert = x509.load_pem_x509_certificate(
+            bcert, backend=default_backend()
+        )
+        self.cert_processor.revoke_cert(cert.serial_number)
+        rev_serial_num = cert.serial_number
         crl = self.cert_processor.get_crl()
         self.assertIsInstance(crl, x509.CertificateRevocationList)
         self.assertIsInstance(
