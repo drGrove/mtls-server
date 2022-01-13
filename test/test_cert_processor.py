@@ -26,6 +26,9 @@ CLEANUP = os.environ.get('CLEANUP', '1')
 
 
 class TestCertProcessorBase(unittest.TestCase):
+    cert_processor: CertProcessor
+    users: list
+
     def get_ca_cert(self):
         key = self.cert_processor.get_ca_key()
         ca_cert = self.cert_processor.get_ca_cert(key)
