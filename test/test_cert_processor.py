@@ -10,6 +10,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 import gnupg
 
 from mtls_server import storage
@@ -32,7 +33,7 @@ class TestCertProcessorBase(unittest.TestCase):
 
     def has_ca_key(self):
         ca_key = self.cert_processor.get_ca_key()
-        self.assertIsInstance(ca_key, openssl.rsa._RSAPrivateKey)
+        self.assertIsInstance(ca_key, rsa.RSAPrivateKey)
 
     def generate_cert(self):
         for user in self.users:
