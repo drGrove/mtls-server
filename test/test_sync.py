@@ -6,7 +6,6 @@ import unittest
 from configparser import ConfigParser
 import gnupg
 
-from mtls_server.cert_processor import CertProcessor
 from mtls_server.config import Config
 from mtls_server.sync import Sync
 from mtls_server.utils import User
