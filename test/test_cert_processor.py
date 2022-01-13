@@ -34,53 +34,6 @@ class TestCertProcessorBase(unittest.TestCase):
         ca_key = self.cert_processor.get_ca_key()
         self.assertIsInstance(ca_key, openssl.rsa._RSAPrivateKey)
 
-    def verify_user(self):
-        for user in self.users:
-            csr = user.gen_csr()
-            signature = self.user_gpg.sign(
-                csr.public_bytes(serialization.Encoding.PEM),
-                keyid=user.fingerprint,
-                detach=True,
-                clearsign=True,
-                passphrase=user.password,
-            )
-            signature_str = str(signature)
-            sig_path = "{tmpdir}/{fingerprint}.asc".format(
-                tmpdir=self.USER_GNUPGHOME.name, fingerprint=user.fingerprint
-            )
-            with open(sig_path, "wb") as sig_file:
-                sig_file.write(bytes(signature_str, "utf-8"))
-            fingerprint = self.cert_processor.verify(
-                csr.public_bytes(serialization.Encoding.PEM), sig_path
-            )
-            os.remove(sig_path)
-            self.assertEqual(fingerprint, user.pgp_key.fingerprint)
-
-    def verify_admin(self):
-        for user in self.admin_users:
-            csr = user.gen_csr()
-            signature = self.admin_gpg.sign(
-                csr.public_bytes(serialization.Encoding.PEM),
-                keyid=user.fingerprint,
-                detach=True,
-                clearsign=True,
-                passphrase=user.password,
-            )
-            signature_str = str(signature)
-            sig_path = "{tmpdir}/{fingerprint}.asc".format(
-                tmpdir=self.ADMIN_GNUPGHOME.name, fingerprint=user.fingerprint
-            )
-            with open(sig_path, "wb") as sig_file:
-                sig_file.write(bytes(signature_str, "utf-8"))
-            fingerprint = self.cert_processor.admin_verify(
-                csr.public_bytes(serialization.Encoding.PEM), sig_path
-            )
-            os.remove(sig_path)
-            self.assertEqual(fingerprint, user.pgp_key.fingerprint)
-
-    def verify_unauthorized_user(self):
-        pass
-
     def generate_cert(self):
         for user in self.users:
             csr = user.gen_csr()
@@ -244,9 +197,6 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
     def test_has_ca_key(self):
         self.has_ca_key()
 
-    def test_verify_user(self):
-        self.verify_user()
-
     def test_generate_cert(self):
         self.generate_cert()
 
@@ -342,15 +292,6 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
 
     def test_has_ca_key(self):
         self.has_ca_key()
-
-    def test_verify_user(self):
-        self.verify_user()
-
-    def test_verify_admin(self):
-        self.verify_admin()
-
-    def test_verify_unauthorized_user(self):
-        self.verify_unauthorized_user()
 
     def test_generate_cert(self):
         self.generate_cert()
@@ -480,9 +421,6 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
 
     def test_has_ca_key(self):
         self.has_ca_key()
-
-    def test_verify_user(self):
-        self.verify_user()
 
     def test_generate_cert(self):
         self.generate_cert()
