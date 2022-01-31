@@ -116,7 +116,7 @@ def create_app(config=None):
     @app.route("/certs", methods=["POST"])
     @login_required
     def create_cert():
-        body = request.get_json()
+        body = g.json
         fingerprint = g.user_fingerprint
         lifetime = int(body.get("lifetime"))
         min_lifetime = Config.get_int("mtls", "min_lifetime", 60)
@@ -204,8 +204,7 @@ def create_app(config=None):
     @login_required
     @admin_required
     def add_user():
-        body = request.get_json()
-        logger.debug(body)
+        body = g.json
         if not body:
             return error_response("Could not parse body", 400)
         keyserver = Config.get("gnupg", "keyserver", "keyserver.ubuntu.com")
@@ -265,7 +264,7 @@ def create_app(config=None):
     @login_required
     @admin_required
     def remove_user_by_fingerprint(fingerprint):
-        body = request.get_json()
+        body = g.json
         admin = body.get('admin', False)
         if admin:
             cert_processor.admin_gpg.delete_keys(fingerprint)
