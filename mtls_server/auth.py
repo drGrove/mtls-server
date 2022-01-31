@@ -49,11 +49,17 @@ def login_required(f):
             return error_response("authentication required", 401)
 
         if token_type == "PGP-SIG":
-            data = request.get_data()
+            if request.content_length:
+                g.data = data = request.get_data()
 
-            # Move the pointer to the input stream back to 0 so that this can be accessed
-            # by the actual request
-            request.input_stream.seek(0)
+                try:
+                    g.json = json.loads(g.data)
+                except Exception:
+                    return error_response("Could not parse body, expected JSON", 400)
+            else:
+                g.data = data = "NOCONTENT".encode('UTF-8')
+                g.json = {}
+
             b64d_token = base64.b64decode(token)
             sig_path = write_sig_to_file(b64d_token)
 
