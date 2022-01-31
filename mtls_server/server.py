@@ -47,7 +47,7 @@ def create_app(config=None):
     Config.config.set("mtls", "cwd", os.getcwd())
 
     user_gpg_path = get_abs_path(
-        config.get(
+        Config.get(
             "gnupg", "user", os.path.join(os.getcwd(), "secrets/gnupg")
         )
     )
@@ -56,7 +56,7 @@ def create_app(config=None):
     user_gpg.encoding = 'UTF-8'
     app.config.update(user_gpg=user_gpg)
     admin_gpg_path = get_abs_path(
-        config.get(
+        Config.get(
             "gnupg",
             "admin",
             os.path.join(os.getcwd(), "secrets/gnupg_admin"),
