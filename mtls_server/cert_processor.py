@@ -124,10 +124,9 @@ class CertProcessor:
             ca_key_path = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), ca_key_path)
             )
+        ca_dir = "/".join(ca_key_path.split("/")[:-1])
+        create_dir_if_missing(ca_dir)
         try:
-            ca_dir = "/".join(ca_key_path.split("/")[:-1])
-            if not os.path.isdir(ca_dir):
-                os.makedirs(ca_dir)
             with open(ca_key_path, "rb") as key_file:
                 if os.environ.get("CA_KEY_PASSWORD"):
                     pw = os.environ.get("CA_KEY_PASSWORD", "").encode("UTF-8")
@@ -174,7 +173,11 @@ class CertProcessor:
         Returns:
             cryptography.x509.Certificate: CA Certificate
         """
+
         ca_cert_path = get_abs_path(self.config.get("ca", "cert"))
+        ca_dir = "/".join(ca_cert_path.split("/")[:-1])
+        create_dir_if_missing(ca_dir)
+
         # Grab the CA Certificate from filesystem if it exists and return
         if os.path.isfile(ca_cert_path):
             with open(ca_cert_path, "rb") as cert_file:
