@@ -233,7 +233,7 @@ def create_app(config=None):
                     )
 
             user_exists = has_user(cert_processor.user_gpg, fingerprint)
-            logger.info(f"Has User {has_user}")
+            logger.info(f"Has User? {user_exists}")
 
             if not user_exists:
                 logger.info(

@@ -186,6 +186,9 @@ class CertProcessor:
                 )
                 return ca_cert
 
+        # We want this to run after the attempt to get the Cert for the case where we want
+        # a certificate that's already been generated. e.g. the route for getting the CA
+        # certificate
         if key is None:
             raise CertProcessorKeyNotFoundError()
 
