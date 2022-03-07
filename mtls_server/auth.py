@@ -30,6 +30,38 @@ class BadSignatureException(Exception):
     pass
 
 
+def legacy_verify(data, sig):
+    sig_path = write_sig_to_file(sig)
+    g.is_admin = False
+
+    verified = current_app.config['admin_gpg'].verify_data(
+        sig_path,
+        data
+    )
+    if verified.trust_level is not None and verified.trust_level >= verified.TRUST_ULTIMATE:
+        logger.debug(f"authenticated user {verified.pubkey_fingerprint} is admin")
+        g.is_admin = True
+
+    if not g.is_admin:
+        verified = current_app.config['user_gpg'].verify_data(
+            sig_path,
+            data
+        )
+
+    os.remove(sig_path)
+
+    if verified.trust_level is None:
+        return error_response(f"unauthorized: {verified.trust_text} {verified.fingerprint} {verified.status}", 401)
+
+    now = time.time()
+    # Time in seconds that signed messages will be accepted once signed.
+    sig_auth_time_range = int(os.environ.get('SIG_AUTH_TIME_RANGE', '5'))
+    if not time_in_range(now-sig_auth_time_range, now, int(verified.timestamp)):
+        return error_response("signature timestamp out of range", 401)
+
+    g.user_fingerprint = verified.pubkey_fingerprint
+    return None
+
 def login_required(f):
     @wraps(f)
     def login_required_wrap(*args, **kwargs):

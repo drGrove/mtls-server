@@ -111,7 +111,7 @@ class BaseCertificateTests(BaseTests):
         self.assertIn("-----BEGIN CERTIFICATE-----", res["cert"])
         self.assertIn("-----END CERTIFICATE-----", res["cert"])
 
-    def user_cannot_get_other_users_cert(self):
+    def user_cannot_revoke_other_users_cert(self):
         user1 = self.users[0]
         user2 = self.users[1]
         csr = user1.gen_csr()
@@ -227,8 +227,8 @@ class TestCertificatesSQLite(SQLiteBaseTestCase, BaseCertificateTests):
     def test_admin_user_generate_cert(self):
         self.admin_user_generate_cert()
 
-    def test_user_cannot_get_other_users_cert(self):
-        self.user_cannot_get_other_users_cert()
+    def test_user_cannot_revoke_other_users_cert(self):
+        self.user_cannot_revoke_other_users_cert()
 
     def test_get_version(self):
         self.get_version()
@@ -270,8 +270,8 @@ class TestCertificatesPostgresql(PostgresqlBaseTestCase, BaseCertificateTests):
     def test_admin_user_generate_cert(self):
         self.admin_user_generate_cert()
 
-    def test_user_cannot_get_other_users_cert(self):
-        self.user_cannot_get_other_users_cert()
+    def test_user_cannot_revoke_other_users_cert(self):
+        self.user_cannot_revoke_other_users_cert()
 
     def test_get_version(self):
         self.get_version()

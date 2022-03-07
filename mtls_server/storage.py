@@ -107,7 +107,7 @@ class SQLiteStorageEngine(SqlStorageEngine):
         )
         cur.execute(
             "UPDATE certs SET revoked=1 WHERE serial_number=?",
-            [str(serial_number)],
+            [str(serial_number),],
         )
         self.conn.commit()
 
@@ -286,7 +286,7 @@ class PostgresqlStorageEngine(SqlStorageEngine):
             values = []
             if serial_number is not None:
                 query_options.append("serial_number=%s")
-                values.append(serial_number)
+                values.append(str(serial_number))
             if fingerprint is not None:
                 query_options.append("fingerprint=%s")
                 values.append(fingerprint)

@@ -11,6 +11,7 @@ from flask import g
 
 from .auth import admin_required
 from .auth import login_required
+from .auth import legacy_verify
 from .cert_processor import CertProcessor
 from .cert_processor import CertProcessorKeyNotFoundError
 from .cert_processor import CertProcessorKeyNotFoundError
@@ -90,6 +91,120 @@ def create_app(config=None):
         key = cert_processor.get_ca_key()
         cert_processor.get_ca_cert(key)
 
+    @app.route("/", methods=["POST"])
+    def legacy_create():
+        if request.content_length:
+            g.data = request.get_data()
+
+            try:
+                g.json = json.loads(g.data)
+            except Exception:
+                return error_response("Could not parse body, expected JSON", 400)
+
+        call_type = g.json.get('type')
+        if call_type != "CERTIFICATE":
+            return error_response(f"Legacy call for {call_type} no longer exists. Please update your client")
+
+        csr_str = g.json.get('csr')
+        csr = cert_processor.get_csr(csr_str)
+        if csr is None:
+            return error_response("Could not load CSR", 400)
+        err = legacy_verify(
+            csr.public_bytes(serialization.Encoding.PEM),
+            g.json.get('signature').encode('utf-8')
+        )
+        if err is not None:
+            return err
+        body = g.json
+        fingerprint = g.user_fingerprint
+        lifetime = int(body.get("lifetime"))
+        min_lifetime = Config.get_int("mtls", "min_lifetime", 60)
+        max_lifetime = Config.get_int("mtls", "max_lifetime", 0)
+        if lifetime < min_lifetime:
+            logger.info(
+                f"User requested lifetime less than minimum. {lifetime} < {min_lifetime}"
+            )
+            lifetime = min_lifetime
+        if max_lifetime != 0:
+            if lifetime > max_lifetime:
+                logger.info(
+                    f"User requested lifetime greater than maximum. {lifetime} < {max_lifetime}"
+                )
+                lifetime = max_lifetime
+        csr_str = body["csr"]
+        csr = cert_processor.get_csr(csr_str)
+        if csr is None:
+            return error_response("Could not load CSR", 400)
+        cert = None
+        try:
+            logger.info(
+                f"create_cert: generating certificate for: {fingerprint}"
+            )
+            cert = cert_processor.generate_cert(
+                csr, lifetime, fingerprint
+            )
+            logger.info(
+                f"create_cert: sending certificate to client for: {fingerprint}"
+            )
+            return json.dumps({"cert": cert.decode("UTF-8")}), 200
+        except CertProcessorKeyNotFoundError:
+            logger.critical("Key missing. Service not properly initialized")
+            return error_response("Internal Error")
+        except CertProcessorMismatchedPublicKeyError:
+            logger.error("CSR Public Key does not match found certificate.")
+            return error_response("CSR Public key does not match previous user key", 400)
+        except CertProcessorNotAdminUserError:
+            logger.error(
+                "User {} is not an admin and attempted ".format(fingerprint)
+                + "to generate a certificate they are not allowed to generate."
+            )
+            return error_response("Invalid Request", 403)
+        except CertProcessorNoPGPKeyFoundError:
+            logger.info("PGP Key not found.")
+            return error_response("Unauthorized", 401)
+        except Exception as e:
+            logger.critical(f"Unhandled Exception: {e}")
+            return error_response("Internal Server Error", 500)
+
+    @app.route("/", methods=["DELETE"])
+    def legacy_delete():
+        if request.content_length:
+            g.data = request.get_data()
+
+            try:
+                g.json = json.loads(g.data)
+            except Exception:
+                return error_response("Could not parse body, expected JSON", 400)
+
+        call_type = g.json.get('type')
+        if call_type != "CERTIFICATE":
+            return error_response(f"Legacy call for {call_type} no longer exists. Please update your client")
+
+        logger.info(f"Legacy Verification")
+        err = legacy_verify(
+            json.dumps(g.json.get('query')).encode('utf-8'),
+            g.json.get('signature').encode('utf-8')
+        )
+        if err is not None:
+            return err
+
+        query = g.json.get('query')
+
+        if not g.is_admin:
+            query['fingerprint'] = g.user_fingerprint
+
+        certs = cert_processor.storage.get_cert(**g.json["query"])
+        if certs is None or len(certs) == 0:
+            return error_response("No Cert to revoke", 404)
+
+        for cert in certs:
+            cert = x509.load_pem_x509_certificate(
+                str(cert).encode("UTF-8"), backend=default_backend()
+            )
+            cert_processor.revoke_cert(cert.serial_number)
+        return json.dumps({"msg": "success"}), 200
+
+
     @app.route("/ca", methods=["GET"])
     def get_ca_cert():
         cert = cert_processor.get_ca_cert()
@@ -107,7 +222,6 @@ def create_app(config=None):
     @app.route("/version", methods=["GET"])
     def get_version():
         return json.dumps({"version": version}), 200
-
 
     @app.route("/certs", methods=["GET"])
     def get_certificates():
