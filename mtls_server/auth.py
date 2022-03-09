@@ -68,7 +68,9 @@ def login_required(f):
         allowed_tokens = ['PGP-SIG']
         g.is_admin = False
 
-        if not (authorization_header := request.headers['Authorization']):
+        (authorization_header := request.headers['Authorization'])
+
+        if not authorization_header:
             return error_response("authentication required", 401)
 
         try:
@@ -99,11 +101,12 @@ def login_required(f):
                 sig_path,
                 data
             )
-            if verified.trust_level is not None and verified.trust_level >= verified.TRUST_ULTIMATE:
-                logger.debug(f"authenticated user {verified.pubkey_fingerprint} is admin")
-                g.is_admin = True
 
-            if not g.is_admin:
+            g.is_admin = verified.trust_level is not None and verified.trust_level >= verified.TRUST_ULTIMATE
+
+            if g.is_admin:
+                logger.debug(f"authenticated user {verified.pubkey_fingerprint} is admin")
+            else:
                 verified = current_app.config['user_gpg'].verify_data(
                     sig_path,
                     data

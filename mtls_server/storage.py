@@ -162,9 +162,9 @@ class SQLiteStorageEngine(SqlStorageEngine):
 
         query_options.append("revoked=?")
         if show_revoked:
-            values.append(str(1))
+            values.append('1')
         else:
-            values.append(str(0))
+            values.append('0')
 
         query = f"{query} {' AND '.join(query_options)}"
         cur.execute(query, values)
