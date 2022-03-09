@@ -14,7 +14,6 @@ from .auth import login_required
 from .auth import legacy_verify
 from .cert_processor import CertProcessor
 from .cert_processor import CertProcessorKeyNotFoundError
-from .cert_processor import CertProcessorKeyNotFoundError
 from .cert_processor import CertProcessorMismatchedPublicKeyError
 from .cert_processor import CertProcessorNoPGPKeyFoundError
 from .cert_processor import CertProcessorNotAdminUserError
