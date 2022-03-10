@@ -196,12 +196,11 @@ def create_dir_if_missing(path):
     if not os.path.isdir(path):
         os.makedirs(path)
 
-def time_in_range(start, end, t):
+def time_in_range(start: float, end: float, t: float) -> bool:
     """Return true if t is in the range [start,end]"""
     if start <= end:
         return start <= t <= end
-    else:
-        return start <= t or t <= end
+    return False
 
 def has_user(gpg, fingerprint):
     keys = gpg.list_keys(keys=fingerprint)
