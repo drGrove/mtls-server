@@ -2,10 +2,12 @@ from pathlib import Path
 import logging
 import os
 import tempfile
+import time
 import unittest
 
 from mtls_server.utils import create_dir_if_missing
 from mtls_server.utils import get_abs_path
+from mtls_server.utils import time_in_range
 
 logging.disable(logging.CRITICAL)
 CLEANUP = os.environ.get('CLEANUP', '1')
@@ -29,3 +31,8 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(os.path.isdir(new_dir))
         if CLEANUP == '1':
             self.TEMPDIR.cleanup()
+
+    def test_time_in_range(self):
+        self.assertTrue(time_in_range(1,5,2))
+        self.assertTrue(time_in_range(time.time()-5, time.time()+5, time.time()))
+        self.assertFalse(time_in_range(time.time()+5, time.time()-5, time.time()))

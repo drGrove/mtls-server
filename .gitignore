@@ -9,6 +9,7 @@ __pycache__
 ~*
 *.sw[o|p]
 *.db
-*.coverage
+*.coverage*
+!/.coveragerc
 /.eggs
 /mtls_server.egg-info

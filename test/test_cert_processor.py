@@ -10,6 +10,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 import gnupg
 
 from mtls_server import storage
@@ -25,6 +26,9 @@ CLEANUP = os.environ.get('CLEANUP', '1')
 
 
 class TestCertProcessorBase(unittest.TestCase):
+    cert_processor: CertProcessor
+    users: list
+
     def get_ca_cert(self):
         key = self.cert_processor.get_ca_key()
         ca_cert = self.cert_processor.get_ca_cert(key)
@@ -32,54 +36,7 @@ class TestCertProcessorBase(unittest.TestCase):
 
     def has_ca_key(self):
         ca_key = self.cert_processor.get_ca_key()
-        self.assertIsInstance(ca_key, openssl.rsa._RSAPrivateKey)
-
-    def verify_user(self):
-        for user in self.users:
-            csr = user.gen_csr()
-            signature = self.user_gpg.sign(
-                csr.public_bytes(serialization.Encoding.PEM),
-                keyid=user.fingerprint,
-                detach=True,
-                clearsign=True,
-                passphrase=user.password,
-            )
-            signature_str = str(signature)
-            sig_path = "{tmpdir}/{fingerprint}.asc".format(
-                tmpdir=self.USER_GNUPGHOME.name, fingerprint=user.fingerprint
-            )
-            with open(sig_path, "wb") as sig_file:
-                sig_file.write(bytes(signature_str, "utf-8"))
-            fingerprint = self.cert_processor.verify(
-                csr.public_bytes(serialization.Encoding.PEM), sig_path
-            )
-            os.remove(sig_path)
-            self.assertEqual(fingerprint, user.pgp_key.fingerprint)
-
-    def verify_admin(self):
-        for user in self.admin_users:
-            csr = user.gen_csr()
-            signature = self.admin_gpg.sign(
-                csr.public_bytes(serialization.Encoding.PEM),
-                keyid=user.fingerprint,
-                detach=True,
-                clearsign=True,
-                passphrase=user.password,
-            )
-            signature_str = str(signature)
-            sig_path = "{tmpdir}/{fingerprint}.asc".format(
-                tmpdir=self.ADMIN_GNUPGHOME.name, fingerprint=user.fingerprint
-            )
-            with open(sig_path, "wb") as sig_file:
-                sig_file.write(bytes(signature_str, "utf-8"))
-            fingerprint = self.cert_processor.admin_verify(
-                csr.public_bytes(serialization.Encoding.PEM), sig_path
-            )
-            os.remove(sig_path)
-            self.assertEqual(fingerprint, user.pgp_key.fingerprint)
-
-    def verify_unauthorized_user(self):
-        pass
+        self.assertIsInstance(ca_key, rsa.RSAPrivateKey)
 
     def generate_cert(self):
         for user in self.users:
@@ -104,18 +61,16 @@ class TestCertProcessorBase(unittest.TestCase):
 
     def get_crl(self):
         rev_serial_num = None
-        for i, user in enumerate(self.users):
-            csr = user.gen_csr()
-            bcert = self.cert_processor.generate_cert(
-                csr, 60, user.fingerprint
-            )
-            cert = x509.load_pem_x509_certificate(
-                bcert, backend=default_backend()
-            )
-            if i == 1:
-                self.cert_processor.revoke_cert(cert.serial_number)
-                rev_serial_num = cert.serial_number
-
+        user = self.users[0]
+        csr = user.gen_csr()
+        bcert = self.cert_processor.generate_cert(
+            csr, 60, user.fingerprint
+        )
+        cert = x509.load_pem_x509_certificate(
+            bcert, backend=default_backend()
+        )
+        self.cert_processor.revoke_cert(cert.serial_number)
+        rev_serial_num = cert.serial_number
         crl = self.cert_processor.get_crl()
         self.assertIsInstance(crl, x509.CertificateRevocationList)
         self.assertIsInstance(
@@ -204,9 +159,9 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -243,9 +198,6 @@ class TestCertProcessorSQLite(TestCertProcessorBase):
 
     def test_has_ca_key(self):
         self.has_ca_key()
-
-    def test_verify_user(self):
-        self.verify_user()
 
     def test_generate_cert(self):
         self.generate_cert()
@@ -303,9 +255,9 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
         self.engine.conn.commit()
         self.engine.init_db()
 
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -342,15 +294,6 @@ class TestCertProcessorPostgres(TestCertProcessorBase):
 
     def test_has_ca_key(self):
         self.has_ca_key()
-
-    def test_verify_user(self):
-        self.verify_user()
-
-    def test_verify_admin(self):
-        self.verify_admin()
-
-    def test_verify_unauthorized_user(self):
-        self.verify_unauthorized_user()
 
     def test_generate_cert(self):
         self.generate_cert()
@@ -398,7 +341,7 @@ class TestCertProcessorMissingStorage(TestCertProcessorBase):
     def test_missing_storage(self):
         with self.assertRaises(storage.StorageEngineMissing):
             Config.init_config(config=self.config)
-            self.cert_processor = CertProcessor(Config)
+            self.cert_processor = CertProcessor(Config, None, None)
 
 
 class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
@@ -441,9 +384,9 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -480,9 +423,6 @@ class TestCertProcessorRelativeGnupgHome(TestCertProcessorBase):
 
     def test_has_ca_key(self):
         self.has_ca_key()
-
-    def test_verify_user(self):
-        self.verify_user()
 
     def test_generate_cert(self):
         self.generate_cert()
@@ -537,9 +477,9 @@ class TestCertProcessorPasswordCAKey(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User("user@host", gen_passwd(), generate_key(), gpg=self.user_gpg),
             User(
@@ -631,9 +571,9 @@ class TestCertProcessorCRLDistributionPath(TestCertProcessorBase):
         cur.execute("DROP TABLE IF EXISTS certs")
         self.engine.conn.commit()
         self.engine.init_db()
-        self.cert_processor = CertProcessor(Config)
         self.user_gpg = gnupg.GPG(gnupghome=self.USER_GNUPGHOME.name)
         self.admin_gpg = gnupg.GPG(gnupghome=self.ADMIN_GNUPGHOME.name)
+        self.cert_processor = CertProcessor(Config, self.user_gpg, self.admin_gpg)
         self.users = [
             User(
                 "user@host.com",

@@ -43,10 +43,12 @@ lint:
 
 .PHONY: coverage
 coverage:
+	-@pipenv run coverage combine -a
 	@pipenv run coverage report -m
 
 .PHONY: coveralls
 coveralls:
+	-@pipenv run coverage combine -a
 	@pipenv run coveralls
 
 .PHONY: test
@@ -56,7 +58,7 @@ ifeq "${CI}" ""
 	$(MAKE) run-postgres
 	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
-	coverage run -m unittest -v
+	coverage run -m unittest discover -v -s test
 ifeq "${CI}" ""
 	$(MAKE) stop-postgres
 endif
@@ -69,7 +71,7 @@ test.dev:
 test-by-name:
 ifeq "${CI}" ""
 	$(MAKE) run-postgres
-	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
+	@until pg_isready -U postgres -h localhost -p 5432; do echo waiting for database; sleep 2; done
 endif
 	-@coverage run -m unittest $(NAME) -v
 ifeq "${CI}" ""
@@ -79,6 +81,22 @@ endif
 .PHONY: test-by-name.dev
 test-by-name.dev:
 	pipenv run $(MAKE) test-by-name
+
+.PHONY: integration-test
+integration-test:
+ifeq "${CI}" ""
+	-$(MAKE) stop-postgres
+	$(MAKE) run-postgres
+	@until pg_isready -h localhost -p 5432; do echo waiting for database; sleep 2; done
+endif
+	coverage run -m unittest discover -v -s integration_test
+ifeq "${CI}" ""
+	$(MAKE) stop-postgres
+endif
+
+.PHONY: integration-test.dev
+integration-test.dev:
+	pipenv run $(MAKE) integration-test
 
 .PHONY: build-image
 build-image:
@@ -112,6 +130,10 @@ stop-postgres:
 .PHONY: run
 run:
 	@pipenv run python3 server.py
+
+.PHONY: run.debug
+run.debug:
+	@pipenv run python3 -m pdb mtls_server/server.py
 
 .PHONY: run-prod
 run-prod: build-image run-postgres

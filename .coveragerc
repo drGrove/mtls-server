@@ -1,4 +1,7 @@
 [run]
 branch = True
+parallel = True
 include = ./*.py
-omit = ./test_*.py
+omit =
+    ./test/*
+    ./integration_test/*

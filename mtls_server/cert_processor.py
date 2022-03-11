@@ -48,7 +48,7 @@ class CertProcessorUnsupportedCriticalExtensionError(Exception):
 
 
 class CertProcessor:
-    def __init__(self, config):
+    def __init__(self, config, user_gnupg, admin_gnupg):
         """Cerificate Processor.
 
         Args:
@@ -76,8 +76,9 @@ class CertProcessor:
         self.admin_gpg.encoding = "utf-8"
 
         # Start Background threads for getting revoke/expiry from Keyserver
-        KeyRefresh("user_key_refresh", self.user_gpg, config)
-        KeyRefresh("admin_key_refresh", self.admin_gpg, config)
+        if os.environ.get('AUTO_REFRESH_KEYS', '0') == '1':
+            KeyRefresh("user_key_refresh", self.user_gpg, config)
+            KeyRefresh("admin_key_refresh", self.admin_gpg, config)
 
         if config.get("storage", "engine", None) is None:
             raise StorageEngineMissing()
@@ -93,70 +94,6 @@ class CertProcessor:
         self.PROTOCOL = config.get(
             "mtls", "protocol", os.environ.get("PROTOCOL", "http")
         )
-
-    def verify(self, data, signature):
-        """Verifies that the signed data is signed by a trusted key.
-
-        Args:
-            data (str): The data to be verified.
-            signature (str): The signature file.
-        Raises:
-            CertProcessorInvalidSignatureError: Signing Key not in trust store.
-            CertProcessorUntrustedSignatureError: Signing Key in trust store
-            but does not have to correct permissions.
-        Returns:
-            str: The fingerprint of the signer.
-        """
-        verified = self.user_gpg.verify_data(signature, data)
-        if verified is None:
-            logger.error("Invalid signature")
-            raise CertProcessorInvalidSignatureError
-        if (
-            verified.trust_level is not None
-            and verified.trust_level < verified.TRUST_FULLY
-        ):
-            logger.error(
-                "User with fingerprint: {} does not have the required trust".format(
-                    verified.pubkey_fingerprint
-                )
-            )
-            raise CertProcessorUntrustedSignatureError
-        if verified.valid is None or verified.valid is False:
-            raise CertProcessorInvalidSignatureError
-        return verified.pubkey_fingerprint
-
-    def admin_verify(self, data, signature):
-        """Verifies that the signed data is signed by an admin key.
-
-        Args:
-            data (str): The data to be verified
-            signature (str): The signature file
-        Raises:
-            CertProcessorInvalidSignatureError: Signing Key not in trust store.
-            CertProcessorUntrustedSignatureError: Signing Key in trust store
-            but does not have to correct permissions.
-        Returns:
-            str: The fingerprint of the signer.
-        """
-        verified = self.admin_gpg.verify_data(signature, data)
-        if verified is None:
-            raise CertProcessorInvalidSignatureError
-        if verified.valid is None or verified.valid is False:
-            logger.error(
-                "Invalid signature for {}".format(verified.fingerprint)
-            )
-            raise CertProcessorInvalidSignatureError
-        if (
-            verified.trust_level is not None
-            and verified.trust_level < verified.TRUST_FULLY
-        ):
-            logger.error(
-                "User with fingerprint: {} does not have the required trust".format(
-                    verified.pubkey_fingerprint
-                )
-            )
-            raise CertProcessorUntrustedSignatureError
-        return verified.pubkey_fingerprint
 
     def get_csr(self, csr):
         """Given a CSR string, get a cryptography CSR Object.
@@ -187,13 +124,12 @@ class CertProcessor:
             ca_key_path = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), ca_key_path)
             )
+        ca_dir = "/".join(ca_key_path.split("/")[:-1])
+        create_dir_if_missing(ca_dir)
         try:
-            ca_dir = "/".join(ca_key_path.split("/")[:-1])
-            if not os.path.isdir(ca_dir):
-                os.makedirs(ca_dir)
             with open(ca_key_path, "rb") as key_file:
                 if os.environ.get("CA_KEY_PASSWORD"):
-                    pw = os.environ.get("CA_KEY_PASSWORD").encode("UTF-8")
+                    pw = os.environ.get("CA_KEY_PASSWORD", "").encode("UTF-8")
                 else:
                     pw = None
                 ca_key = serialization.load_pem_private_key(
@@ -209,7 +145,7 @@ class CertProcessor:
 
             if os.environ.get("CA_KEY_PASSWORD"):
                 encryption_algorithm = serialization.BestAvailableEncryption(
-                    os.environ.get("CA_KEY_PASSWORD").encode("UTF-8")
+                    os.environ.get("CA_KEY_PASSWORD", "").encode("UTF-8")
                 )
             else:
                 encryption_algorithm = self.no_encyption
@@ -237,7 +173,11 @@ class CertProcessor:
         Returns:
             cryptography.x509.Certificate: CA Certificate
         """
+
         ca_cert_path = get_abs_path(self.config.get("ca", "cert"))
+        ca_dir = "/".join(ca_cert_path.split("/")[:-1])
+        create_dir_if_missing(ca_dir)
+
         # Grab the CA Certificate from filesystem if it exists and return
         if os.path.isfile(ca_cert_path):
             with open(ca_cert_path, "rb") as cert_file:
@@ -246,6 +186,9 @@ class CertProcessor:
                 )
                 return ca_cert
 
+        # We want this to run after the attempt to get the Cert for the case where we want
+        # a certificate that's already been generated. e.g. the route for getting the CA
+        # certificate
         if key is None:
             raise CertProcessorKeyNotFoundError()
 
