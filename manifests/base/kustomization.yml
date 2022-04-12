@@ -26,4 +26,4 @@ secretGenerator:
 images:
   - name: drgrove/mtls-server
     newTag: v0.20.0
-    digest: sha256:ae94be51d308a4ff0c1c4facda37308bfc08507234f64a84080bf2310ab42b9c
+    digest: sha256:78a5fd3f56ca9034a4a326d598c7a3a43414b57b7f0b4f8d4a579d0df4b2b0ea
