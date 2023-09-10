@@ -5,7 +5,7 @@ resources:
   - mtls-role.yml
   - mtls-serviceaccount.yml
 patches:
-  - add-sidecars.patch.yml
+  - path: add-sidecars.patch.yml
 configMapGenerator:
   - name: mtls-restart-script
     files:
