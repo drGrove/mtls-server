@@ -6,7 +6,7 @@ verify_ssl = true
 [packages]
 Flask = "==2.0.2"
 Jinja2 = "==3.0.2"
-cryptography = "==35.0.0"
+cryptography = "==39.0.1"
 psycopg2-binary = "==2.9.1"
 python-gnupg = "==0.4.7"
 uWSGI = "==2.0.20"
